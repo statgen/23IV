@@ -449,25 +449,17 @@ var pca3d = (function (data, config) {
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
-//        var material = new THREE.PointsMaterial({
-//            size: 10.0,
-//            sizeAttenuation: false,
-//            transparent: true,
-//            opacity: 0.7,
-//            vertexColors: THREE.VertexColors
-//        });
-        
         var material = new THREE.PointsMaterial({
             color: 0xffffff,
             size: 10,
             sizeAttenuation: false,
             transparent: true,
             map: sphere,
-           // opacity: 0.7,
+//            opacity: 0.7,
             vertexColors: THREE.VertexColors
         });
         
-        material.depthWrite = false;
+        material.alphaTest = 0.5;
                     
         lookupTable.clear();
           
@@ -488,7 +480,6 @@ var pca3d = (function (data, config) {
         }
                 
         particles = new THREE.Points(geometry, material);
-        particles.sortParticles = true;
         sceneData.add(particles);
     };    
     

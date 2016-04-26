@@ -50,8 +50,10 @@ var pca2d = (function (data, config) {
     
     var sceneData = null;
     var sceneAxes = null;
+    var sceneGrid = null;
     var cameraData = null;
     var cameraAxes = null;
+    var cameraGrid = null;
     var renderer = null;
     var raycaster = null;
     var controls = null;
@@ -315,12 +317,6 @@ var pca2d = (function (data, config) {
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
-//        var material = new THREE.PointsMaterial({
-//            size: 2.0,
-//            transparent: true,
-//            opacity: 0.7,
-//            vertexColors: THREE.VertexColors
-//        });
         
         var material = new THREE.PointsMaterial({
             color: 0xffffff,
@@ -328,10 +324,11 @@ var pca2d = (function (data, config) {
             sizeAttenuation: false,
             transparent: true,
             map: circle,
-            //opacity: 0.7,
+            opacity: 0.7,
             vertexColors: THREE.VertexColors
         });
         
+//        material.alphaTest = 0.5;
         material.depthWrite = false;
                     
         lookupTable.clear();
@@ -428,12 +425,16 @@ var pca2d = (function (data, config) {
     var initializeGL = function() {
         sceneData = new THREE.Scene();
         sceneAxes = new THREE.Scene();
+        sceneGrid = new THREE.Scene();
             
         cameraData = new THREE.OrthographicCamera(dataViewSquare.minX, dataViewSquare.maxX, dataViewSquare.maxY, dataViewSquare.minY, 0, 100);
         cameraData.position.set(0, 0, 100);
         
         cameraAxes = new THREE.OrthographicCamera(axesViewSquare.minX, axesViewSquare.maxX, axesViewSquare.maxY, axesViewSquare.minY, 0, 100);
         cameraAxes.position.set(0, 0, 100);
+        
+        cameraGrid = new THREE.OrthographicCamera(axesViewSquare.minX, axesViewSquare.maxX, axesViewSquare.maxY, axesViewSquare.minY, 0, 100);
+        cameraGrid.position.set(0, 0, 100);
         
         renderer = new THREE.WebGLRenderer({
             canvas: canvas,
@@ -483,9 +484,12 @@ var pca2d = (function (data, config) {
         updateTickLabels();
         
         renderer.clear();
+        renderer.render(sceneGrid, cameraGrid);
+        renderer.clearDepth();
         renderer.render(sceneData, cameraData);
         renderer.clearDepth();
         renderer.render(sceneAxes, cameraAxes);
+        
     };
     
     this.updateData = function() {
@@ -532,9 +536,9 @@ var pca2d = (function (data, config) {
     this.enableGrid = function(enable) {
         if (grid) {
             if (enable) {
-                sceneAxes.add(grid);
+                sceneGrid.add(grid);
             } else {
-                sceneAxes.remove(grid);
+                sceneGrid.remove(grid);
             }
         }
     }
