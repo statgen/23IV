@@ -412,7 +412,7 @@ var pca3d = (function (data, config) {
         }
                 
         particles = new THREE.Points(geometry, material);
-        //particles.sortParticles = true;
+        particles.sortParticles = true;
         sceneData.add(particles);
     };    
     

@@ -34,6 +34,7 @@ var pca2d = (function (data, config) {
         sideSize: 100,
         tickSize: 1,
         margin: 10,
+        labelOffset: 2,
         xAxis: {
             start: {x: -40, y: -40},
             end: {x: 40, y: -40}
@@ -52,6 +53,7 @@ var pca2d = (function (data, config) {
     var raycaster = null;
     var controls = null;
     var particles = null;
+    var grid = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -280,11 +282,11 @@ var pca2d = (function (data, config) {
         sceneAxes.add(labelTickMinY.sprite);
         sceneAxes.add(labelTickMaxY.sprite);
             
-        labelX = createLabel(config.xAttribute, "Arial", 24, "top", "");
-        labelY = createLabel(config.yAttribute, "Arial", 24, "", "right");
+        labelX = createLabel(config.xAttribute, "Arial", 24, "bottom", "");
+        labelY = createLabel(config.yAttribute, "Arial", 24, "", "left");
             
-        labelX.sprite.position.set(0, axesViewSquare.minY, 0);
-        labelY.sprite.position.set(axesViewSquare.minX, 0, 0);
+        labelX.sprite.position.set(0, axesViewSquare.xAxis.start.y - axesViewSquare.labelOffset, 0);
+        labelY.sprite.position.set(axesViewSquare.yAxis.start.x - axesViewSquare.labelOffset, 0, 0);
             
         sceneAxes.add(labelX.sprite);
         sceneAxes.add(labelY.sprite);
@@ -346,6 +348,25 @@ var pca2d = (function (data, config) {
                 
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
+    };
+    
+    // Draw grid
+    var drawGrid = function() {
+        var material = new THREE.LineBasicMaterial({color: 0xD3D3D3, linewidth: 1});
+        var geometry = new THREE.Geometry();
+        var step = (axesViewSquare.sideSize - 2 * axesViewSquare.margin) / 10;
+        
+        for (var x = axesViewSquare.minX + axesViewSquare.margin + step; x <= axesViewSquare.maxX - axesViewSquare.margin; x += step) {
+            geometry.vertices.push(new THREE.Vector3(x, axesViewSquare.minY + axesViewSquare.margin, 0));
+            geometry.vertices.push(new THREE.Vector3(x, axesViewSquare.maxY - axesViewSquare.margin, 0));
+        }
+        
+        for (var y = axesViewSquare.minY + axesViewSquare.margin + step; y <= axesViewSquare.maxY - axesViewSquare.margin; y += step) {
+            geometry.vertices.push(new THREE.Vector3(axesViewSquare.minX + axesViewSquare.margin, y, 0));
+            geometry.vertices.push(new THREE.Vector3(axesViewSquare.maxX - axesViewSquare.margin, y, 0));
+        }
+        
+        grid = new THREE.Line(geometry, material, THREE.LinePieces);
     };
     
     // Update normalized mouse coordinates on mouse move event inside canvas
@@ -442,7 +463,8 @@ var pca2d = (function (data, config) {
     // Initialize view
     var initializeScene = function() {
         drawData();
-        drawAxes();  
+        drawGrid();
+        drawAxes();
     };
     
     this.initialize = function() {
@@ -499,6 +521,16 @@ var pca2d = (function (data, config) {
     this.deactivate = function() {
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
+    };
+    
+    this.enableGrid = function(enable) {
+        if (grid) {
+            if (enable) {
+                sceneAxes.add(grid);
+            } else {
+                sceneAxes.remove(grid);
+            }
+        }
     }
     
     calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);

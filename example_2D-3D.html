@@ -150,6 +150,7 @@
             config.groups.add(legend[i]["color"]);
         }
         
+        var gridEnabled = false;
         var enabled3d = false;
         
         var gl = null;
@@ -191,13 +192,15 @@
         
         controlsDiv.append("div")
             .attr("class", "control")
-            .text("Grid on")
+            .text("Grid off")
             .on("click", function(d, i) {
                 if (gridEnabled) {
-                    enableGrid(false);
+                    gl.enableGrid(false);
+                    gridEnabled = false;
                     d3.select(this).text("Grid off");
                 } else {
-                    enableGrid(true);
+                    gl.enableGrid(true);
+                    gridEnabled = true;
                     d3.select(this).text("Grid on");
                 }
             });
@@ -222,13 +225,13 @@
             
             legendTr.on("click", function(d, i) {
                 if (config.groups.has(d["color"])) {
-                    d3.select(this).select("rect").style("fill", "ffffff");
-                    /*d3.select(this).select("circle").style("fill", "ffffff");*/
+                    /*d3.select(this).select("rect").style("fill", "ffffff");*/
+                    d3.select(this).select("circle").style("fill", "ffffff");
                     config.groups.delete(d["color"]);
                     gl.updateData();
                 } else {
-                    d3.select(this).select("rect").style("fill", d["color"]);
-                    /*d3.select(this).select("circle").style("fill", d["color"]);*/
+                    /*d3.select(this).select("rect").style("fill", d["color"]);*/
+                    d3.select(this).select("circle").style("fill", d["color"]);
                     config.groups.add(d["color"]);
                     gl.updateData();
                 }
@@ -239,20 +242,20 @@
                 .append("svg")
                     .attr("width", 18)
                     .attr("height", 19)
-                    .append("rect")
+                    /*.append("rect")
                        .datum(function(d) {return d;})
                        .attr("stroke", "black")
                        .attr("x", 6)
                        .attr("y", 6)
                        .attr("width", 8)
-                       .attr("height", 8)
-                  /*  .append("circle")
+                       .attr("height", 8)*/
+                    .append("circle")
                        .datum(function(d) {return d;})
                        .attr("cx", 9)
                        .attr("cy", 9)
                        .attr("r", 4)
                        .style("stroke", "black")
-                       .style("stroke-width", 1.0)*/
+                       .style("stroke-width", 1.0)
                        .style("fill", function(d) {return d;})
                            
             legendTr.append("td")
