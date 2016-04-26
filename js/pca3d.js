@@ -80,7 +80,9 @@ var pca3d = (function (data, config) {
     var highlighted = null;
     
     var lookupTable = new Map();
-            
+    
+    var sphere = new THREE.TextureLoader().load("textures/sphere.png");
+    
     // Calculate bouding box for data
     var calculateDataBoundingBox = function(xDimName, yDimName, zDimName) {
         dataBoundingBox.minX = Number.MAX_VALUE;
@@ -376,14 +378,12 @@ var pca3d = (function (data, config) {
 //            vertexColors: THREE.VertexColors
 //        });
         
-        var circle = THREE.ImageUtils.loadTexture("textures/sphere.png");
-        
         var material = new THREE.PointsMaterial({
             color: 0xffffff,
             size: 10,
             sizeAttenuation: false,
             transparent: true,
-            map: circle,
+            map: sphere,
            // opacity: 0.7,
             vertexColors: THREE.VertexColors
         });

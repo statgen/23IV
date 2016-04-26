@@ -76,7 +76,9 @@ var pca2d = (function (data, config) {
     var highlighted = null;
     
     var lookupTable = new Map();
-            
+    
+    var circle = new THREE.TextureLoader().load("textures/circle.png");
+                
     // Calculate bouding rectangle for data
     var calculateDataBoundingRectangle = function(xDimName, yDimName) {
         dataBoundingRectangle.minX = Number.MAX_VALUE;
@@ -317,8 +319,6 @@ var pca2d = (function (data, config) {
 //            vertexColors: THREE.VertexColors
 //        });
         
-        var circle = THREE.ImageUtils.loadTexture("textures/circle.png");
-        
         var material = new THREE.PointsMaterial({
             color: 0xffffff,
             size: 10,
@@ -366,7 +366,7 @@ var pca2d = (function (data, config) {
             geometry.vertices.push(new THREE.Vector3(axesViewSquare.maxX - axesViewSquare.margin, y, 0));
         }
         
-        grid = new THREE.Line(geometry, material, THREE.LinePieces);
+        grid = new THREE.LineSegments(geometry, material);
     };
     
     // Update normalized mouse coordinates on mouse move event inside canvas
