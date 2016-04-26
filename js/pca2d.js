@@ -1,6 +1,9 @@
 var pca2d = (function (data, config) {
     
     var canvas = d3.select(config.canvasId).node();
+    var originalCanvasWidth = canvas.width;
+    var originalCanvasHeight = canvas.height;
+
     
     // Bounding rectangle for data
     var dataBoundingRectangle = {
@@ -521,6 +524,9 @@ var pca2d = (function (data, config) {
     this.deactivate = function() {
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
+        d3.select(config.canvasId)
+            .attr("width", originalCanvasWidth)
+            .attr("height", originalCanvasHeight);
     };
     
     this.enableGrid = function(enable) {

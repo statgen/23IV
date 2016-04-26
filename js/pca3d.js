@@ -1,6 +1,8 @@
 var pca3d = (function (data, config) {
     
     var canvas = d3.select(config.canvasId).node();
+    var originalCanvasWidth = canvas.width;
+    var originalCanvasHeight = canvas.height;
     
     // Bounding box for data
     var dataBoundingBox = {
@@ -395,10 +397,7 @@ var pca3d = (function (data, config) {
         if (particles) {
             sceneData.remove(particles);
         }
-        
-
-        
-            
+                    
         for (var i = 0, j = 0; i < data.length; i++) {
             if (config.groups.has(data[i][config.groupAttribute])) {
                 geometry.vertices.push(new THREE.Vector3(
@@ -560,6 +559,9 @@ var pca3d = (function (data, config) {
     this.deactivate = function() {
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
+        d3.select(config.canvasId)
+            .attr("width", originalCanvasWidth)
+            .attr("height", originalCanvasHeight);
     }
     
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
