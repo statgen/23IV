@@ -59,6 +59,7 @@ var pca3d = (function (data, config) {
     var raycaster = null;
     var controls = null;
     var particles = null;
+    var grid = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -369,6 +370,39 @@ var pca3d = (function (data, config) {
         updateLabel(labelTickMaxY, getTickYLabel(axesViewSquare.yAxis.end.y, miny, maxy));
     }
     
+    // Draw grid
+    var drawGrid = function() {
+        var material = new THREE.LineBasicMaterial({color: 0xD3D3D3, linewidth: 1});
+        var geometry = new THREE.Geometry();
+        var step = dataViewCube.sideSize / 10;
+        
+        for (var x = dataViewCube.minX + step; x <= dataViewCube.maxX; x += step) {
+            geometry.vertices.push(new THREE.Vector3(x, dataViewCube.minY, dataViewCube.minZ));
+            geometry.vertices.push(new THREE.Vector3(x, dataViewCube.maxY, dataViewCube.minZ));
+            
+            geometry.vertices.push(new THREE.Vector3(x, dataViewCube.minY, dataViewCube.minZ));
+            geometry.vertices.push(new THREE.Vector3(x, dataViewCube.minY, dataViewCube.maxZ));
+        }
+        
+        for (var y = dataViewCube.minY + step; y <= dataViewCube.maxY; y += step) {
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, y, dataViewCube.minZ));
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.maxX, y, dataViewCube.minZ));
+            
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, y, dataViewCube.minZ));
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, y, dataViewCube.maxZ));
+        }
+        
+        for (var z = dataViewCube.minZ + step; z <= dataViewCube.maxZ; z += step) {
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, z));
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, z));
+            
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, z));
+            geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, z));
+        }
+        
+        grid = new THREE.LineSegments(geometry, material);
+    };
+    
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
@@ -505,6 +539,7 @@ var pca3d = (function (data, config) {
     // Initialize view
     var initializeScene = function() {
         drawData();
+        drawGrid();
         drawAxes();  
     };
     
@@ -562,6 +597,16 @@ var pca3d = (function (data, config) {
         d3.select(config.canvasId)
             .attr("width", originalCanvasWidth)
             .attr("height", originalCanvasHeight);
+    }
+    
+    this.enableGrid = function(enable) {
+        if (grid) {
+            if (enable) {
+                sceneData.add(grid);
+            } else {
+                sceneData.remove(grid);
+            }
+        }
     }
     
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);

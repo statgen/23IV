@@ -272,11 +272,13 @@
                 gl = new pca2d(data, config);
             }
             gl.initialize();
+            gl.enableGrid(gridEnabled);
         }
         
         gl = new pca2d(data, config);
 //        gl = new pca3d(data, config);
         gl.initialize();
+        gl.enableGrid(gridEnabled);
         
         function animate() {
             if (animating) {
