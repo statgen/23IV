@@ -327,27 +327,41 @@ var pca3d = (function (data, config) {
 		var Y_geometry = new THREE.Geometry();
 		var Z_geometry = new THREE.Geometry();
                 
-		X_geometry.vertices.push(
-            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
-            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ));
+//		X_geometry.vertices.push(
+//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
+//            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ));
+//		Y_geometry.vertices.push(
+//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
+//            new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ));
+//		Z_geometry.vertices.push(
+//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
+//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ));
+        
+        X_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ));
 		Y_geometry.vertices.push(
-            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
-            new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ));
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, dataViewCube.maxZ));
 		Z_geometry.vertices.push(
-            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
-            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ));
-                                
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ), 
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ));
+        
 		sceneData.add(new THREE.Line(X_geometry, axis_material));
 		sceneData.add(new THREE.Line(Y_geometry, axis_material));
 		sceneData.add(new THREE.Line(Z_geometry, axis_material));
         
-        labelX = createLabel(config.xAttribute, "Arial", 24, "top", "");
-        labelY = createLabel(config.yAttribute, "Arial", 24, "top", "");
-        labelZ = createLabel(config.zAttribute, "Arial", 24, "top", "");
+        labelX = createLabel(config.xAttribute, "Arial", 24, "bottom", "");
+        labelY = createLabel(config.yAttribute, "Arial", 24, "", "left");
+        labelZ = createLabel(config.zAttribute, "Arial", 24, "bottom", "");
         
-        labelX.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ);
-        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ);
-        labelZ.sprite.position.set(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ);
+//        labelX.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ);
+//        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ);
+//        labelZ.sprite.position.set(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ);
+        
+        labelX.sprite.position.set(dataViewCube.centerX, dataViewCube.minY, dataViewCube.maxZ);
+        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.centerY, dataViewCube.maxZ);
+        labelZ.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.centerZ);
             
         sceneData.add(labelX.sprite);
         sceneData.add(labelY.sprite);
@@ -376,7 +390,7 @@ var pca3d = (function (data, config) {
         var geometry = new THREE.Geometry();
         var step = dataViewCube.sideSize / 10;
         
-        for (var x = dataViewCube.minX + step; x <= dataViewCube.maxX; x += step) {
+        for (var x = dataViewCube.minX; x <= dataViewCube.maxX; x += step) {
             geometry.vertices.push(new THREE.Vector3(x, dataViewCube.minY, dataViewCube.minZ));
             geometry.vertices.push(new THREE.Vector3(x, dataViewCube.maxY, dataViewCube.minZ));
             
@@ -384,7 +398,7 @@ var pca3d = (function (data, config) {
             geometry.vertices.push(new THREE.Vector3(x, dataViewCube.minY, dataViewCube.maxZ));
         }
         
-        for (var y = dataViewCube.minY + step; y <= dataViewCube.maxY; y += step) {
+        for (var y = dataViewCube.minY; y <= dataViewCube.maxY; y += step) {
             geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, y, dataViewCube.minZ));
             geometry.vertices.push(new THREE.Vector3(dataViewCube.maxX, y, dataViewCube.minZ));
             
@@ -392,7 +406,7 @@ var pca3d = (function (data, config) {
             geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, y, dataViewCube.maxZ));
         }
         
-        for (var z = dataViewCube.minZ + step; z <= dataViewCube.maxZ; z += step) {
+        for (var z = dataViewCube.minZ; z <= dataViewCube.maxZ; z += step) {
             geometry.vertices.push(new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, z));
             geometry.vertices.push(new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, z));
             
@@ -506,8 +520,8 @@ var pca3d = (function (data, config) {
     var initializeGL = function() {
         sceneData = new THREE.Scene();
         
-        cameraData = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
-        cameraData.position.set(1.5 * dataViewCube.maxX, 1.5 * dataViewCube.maxY, 1.5 * dataViewCube.maxZ);
+        cameraData = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000);
+        cameraData.position.set(3 * dataViewCube.maxX, 6 * dataViewCube.centerY, 3 * dataViewCube.maxZ);
                         
         renderer = new THREE.WebGLRenderer({
             canvas: canvas,
