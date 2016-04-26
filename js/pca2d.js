@@ -308,12 +308,26 @@ var pca2d = (function (data, config) {
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
+//        var material = new THREE.PointsMaterial({
+//            size: 2.0,
+//            transparent: true,
+//            opacity: 0.7,
+//            vertexColors: THREE.VertexColors
+//        });
+        
+        var circle = THREE.ImageUtils.loadTexture("textures/circle.png");
+        
         var material = new THREE.PointsMaterial({
-            size: 2.0,
+            color: 0xffffff,
+            size: 10,
+            sizeAttenuation: false,
             transparent: true,
-            opacity: 0.7,
+            map: circle,
+            //opacity: 0.7,
             vertexColors: THREE.VertexColors
         });
+        
+        material.depthWrite = false;
                     
         lookupTable.clear();
           

@@ -2,7 +2,7 @@ var pca3d = (function (data, config) {
     
     var canvas = d3.select(config.canvasId).node();
     
-    // Bounding rectangle for data
+    // Bounding box for data
     var dataBoundingBox = {
         minX: Number.MAX_VALUE,
         minY: Number.MAX_VALUE,
@@ -18,16 +18,38 @@ var pca3d = (function (data, config) {
         length: 0
     };
     
-    // Bounding square for data viewing that will fit into squared canvas without stretching/squezzing the drawing.
- //   var dataViewSquare = {
-//        minX: Number.MAX_VALUE,
-//        minY: Number.MAX_VALUE,
-//        maxX: 0,
-//        maxY: 0,
-//        centerX: Number.MAX_VALUE,
-//        centerY: Number.MAX_VALUE,
-//        sideSize: 0
-//    };
+    // Bounding cube for data.
+    var dataViewCube = {
+        minX: Number.MAX_VALUE,
+        minY: Number.MAX_VALUE,
+        minZ: Number.MAX_VALUE,
+        maxX: 0,
+        maxY: 0,
+        maxZ: 0,
+        centerX: Number.MAX_VALUE,
+        centerY: Number.MAX_VALUE,
+        centerZ: Number.MAX_VALUE,
+        sideSize: 0
+    };
+    
+// Bounding square for fixed view of X and Y axes on top of data view.
+//    var axesViewSquare = {
+//        minX: -50,
+//        maxX: 50,
+//        minY: -50,
+//        maxY: 50,
+//        sideSize: 100,
+//        tickSize: 1,
+//        margin: 10,
+//        xAxis: {
+//            start: {x: -40, y: -40},
+//            end: {x: 40, y: -40}
+//        },
+//        yAxis: {
+//            start: {x: -40, y: -40},
+//            end: {x: -40, y: 40}
+//        }
+//    }
         
     var sceneData = null;
     var cameraData = null;
@@ -90,33 +112,41 @@ var pca3d = (function (data, config) {
     }
     
     // Calculate view square for data
-    var calculateDataViewSquare = function() {
-        dataViewSquare.minX = Math.floor(dataBoundingRectangle.minX);
-        dataViewSquare.maxX = Math.ceil(dataBoundingRectangle.maxX);
-        dataViewSquare.minY = Math.floor(dataBoundingRectangle.minY);
-        dataViewSquare.maxY = Math.ceil(dataBoundingRectangle.maxY);
-                   
-        dataViewSquare.sideSize = Math.max(dataViewSquare.maxX - dataViewSquare.minX, dataViewSquare.maxY - dataViewSquare.minY);
+    var calculateDataViewCube = function() {
+        dataViewCube.minX = Math.floor(dataBoundingBox.minX);
+        dataViewCube.maxX = Math.ceil(dataBoundingBox.maxX);
+        dataViewCube.minY = Math.floor(dataBoundingBox.minY);
+        dataViewCube.maxY = Math.ceil(dataBoundingBox.maxY);
+        dataViewCube.minZ = Math.floor(dataBoundingBox.minZ);
+        dataViewCube.maxZ = Math.ceil(dataBoundingBox.maxZ);
         
-        if (dataViewSquare.maxX - dataViewSquare.minX < dataViewSquare.sideSize) {
-            var append = dataViewSquare.sideSize - dataViewSquare.maxX + dataViewSquare.minX;
-            dataViewSquare.minX = dataViewSquare.minX - Math.floor(append / 2);
-            dataViewSquare.maxX = dataViewSquare.maxX + Math.ceil(append / 2);            
-        } else if (dataViewSquare.maxY - dataViewSquare.minY < dataViewSquare.sideSize) {
-            var append = dataViewSquare.sideSize - dataViewSquare.maxY + dataViewSquare.minY;
-            dataViewSquare.minY = dataViewSquare.minY - Math.floor(append / 2);
-            dataViewSquare.maxY = dataViewSquare.maxY + Math.ceil(append / 2);
+        dataViewCube.sideSize = Math.max(
+            dataViewCube.maxX - dataViewCube.minX, 
+            dataViewCube.maxY - dataViewCube.minY,
+            dataViewCube.maxZ - dataViewCube.minZ
+        );
+        
+        if (dataViewCube.maxX - dataViewCube.minX < dataViewCube.sideSize) {
+            var append = dataViewCube.sideSize - dataViewCube.maxX + dataViewCube.minX;
+            dataViewCube.minX = dataViewCube.minX - Math.floor(append / 2);
+            dataViewCube.maxX = dataViewCube.maxX + Math.ceil(append / 2);            
+        } 
+        
+        if (dataViewCube.maxY - dataViewCube.minY < dataViewCube.sideSize) {
+            var append = dataViewCube.sideSize - dataViewCube.maxY + dataViewCube.minY;
+            dataViewCube.minY = dataViewCube.minY - Math.floor(append / 2);
+            dataViewCube.maxY = dataViewCube.maxY + Math.ceil(append / 2);
         }
-                    
-        var unit = dataViewSquare.sideSize / (axesViewSquare.sideSize - 2 * axesViewSquare.margin);
-        
-        dataViewSquare.minX = dataViewSquare.minX - axesViewSquare.margin * unit;
-        dataViewSquare.maxX = dataViewSquare.maxX + axesViewSquare.margin * unit;
-        dataViewSquare.minY = dataViewSquare.minY - axesViewSquare.margin * unit;
-        dataViewSquare.maxY = dataViewSquare.maxY + axesViewSquare.margin * unit;
-        dataViewSquare.sideSize = dataViewSquare.sideSize + 2 * axesViewSquare.margin * unit;
-        dataViewSquare.centerX = dataViewSquare.minX + (dataViewSquare.maxX - dataViewSquare.minX) / 2;
-        dataViewSquare.centerY = dataViewSquare.minY + (dataViewSquare.maxY - dataViewSquare.minY) / 2;   
+
+        if (dataViewCube.maxZ - dataViewCube.minZ < dataViewCube.sideSize) {
+            var append = dataViewCube.sideSize - dataViewCube.maxZ + dataViewCube.minZ;
+            dataViewCube.minZ = dataViewCube.minZ - Math.floor(append / 2);
+            dataViewCube.maxZ = dataViewCube.maxZ + Math.ceil(append / 2);
+        }
+
+        dataViewCube.centerX = dataViewCube.minX + (dataViewCube.maxX - dataViewCube.minX) / 2;
+        dataViewCube.centerY = dataViewCube.minY + (dataViewCube.maxY - dataViewCube.minY) / 2;   
+        dataViewCube.centerZ = dataViewCube.minZ + (dataViewCube.maxZ - dataViewCube.minZ) / 2;   
     }
     
     // Create label
@@ -203,18 +233,18 @@ var pca3d = (function (data, config) {
     };
     
     // Get X axis tick label at tick_position
-    var getTickXLabel = function(tick_position, data_view_minX, data_view_maxX) {
-        var unit = (data_view_maxX - data_view_minX) / axesViewSquare.sideSize;
-        var  label = data_view_minX + unit * (tick_position - axesViewSquare.minX);
-        return label.toFixed(2);
-    };
+//    var getTickXLabel = function(tick_position, data_view_minX, data_view_maxX) {
+//        var unit = (data_view_maxX - data_view_minX) / axesViewSquare.sideSize;
+//        var  label = data_view_minX + unit * (tick_position - axesViewSquare.minX);
+//        return label.toFixed(2);
+//    };
     
     // Get Y axis tick label at tick_position
-    var getTickYLabel = function(tick_position, data_view_minY, data_view_maxY) {
-        var unit = (data_view_maxY - data_view_minY) / axesViewSquare.sideSize;
-        var label = data_view_minY + unit * (tick_position - axesViewSquare.minY);
-        return label.toFixed(2);
-    };
+//    var getTickYLabel = function(tick_position, data_view_minY, data_view_maxY) {
+//        var unit = (data_view_maxY - data_view_minY) / axesViewSquare.sideSize;
+//        var label = data_view_minY + unit * (tick_position - axesViewSquare.minY);
+//        return label.toFixed(2);
+//    };
     
     // Draw axes
 //    var drawAxes = function() {
@@ -293,14 +323,14 @@ var pca3d = (function (data, config) {
 		var Z_geometry = new THREE.Geometry();
                 
 		X_geometry.vertices.push(
-            new THREE.Vector3(dataBoundingBox.minX, dataBoundingBox.minY, dataBoundingBox.minZ), 
-            new THREE.Vector3(dataBoundingBox.maxX, dataBoundingBox.minY, dataBoundingBox.minZ));
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ));
 		Y_geometry.vertices.push(
-            new THREE.Vector3(dataBoundingBox.minX, dataBoundingBox.minY, dataBoundingBox.minZ), 
-            new THREE.Vector3(dataBoundingBox.minX, dataBoundingBox.maxY, dataBoundingBox.minZ));
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ));
 		Z_geometry.vertices.push(
-            new THREE.Vector3(dataBoundingBox.minX, dataBoundingBox.minY, dataBoundingBox.minZ), 
-            new THREE.Vector3(dataBoundingBox.minX, dataBoundingBox.minY, dataBoundingBox.maxZ));
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ));
                                 
 		sceneData.add(new THREE.Line(X_geometry, axis_material));
 		sceneData.add(new THREE.Line(Y_geometry, axis_material));
@@ -310,9 +340,9 @@ var pca3d = (function (data, config) {
         labelY = createLabel(config.yAttribute, "Arial", 24, "top", "");
         labelZ = createLabel(config.zAttribute, "Arial", 24, "top", "");
         
-        labelX.sprite.position.set(dataBoundingBox.maxX, dataBoundingBox.minY, dataBoundingBox.minZ);
-        labelY.sprite.position.set(dataBoundingBox.minX, dataBoundingBox.maxY, dataBoundingBox.minZ);
-        labelZ.sprite.position.set(dataBoundingBox.minX, dataBoundingBox.minY, dataBoundingBox.maxZ);
+        labelX.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ);
+        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ);
+        labelZ.sprite.position.set(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ);
             
         sceneData.add(labelX.sprite);
         sceneData.add(labelY.sprite);
@@ -338,18 +368,36 @@ var pca3d = (function (data, config) {
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
+//        var material = new THREE.PointsMaterial({
+//            size: 10.0,
+//            sizeAttenuation: false,
+//            transparent: true,
+//            opacity: 0.7,
+//            vertexColors: THREE.VertexColors
+//        });
+        
+        var circle = THREE.ImageUtils.loadTexture("textures/sphere.png");
+        
         var material = new THREE.PointsMaterial({
-            size: 3.0,
+            color: 0xffffff,
+            size: 10,
+            sizeAttenuation: false,
             transparent: true,
-            opacity: 0.7,
+            map: circle,
+           // opacity: 0.7,
             vertexColors: THREE.VertexColors
         });
+        
+        material.depthWrite = false;
                     
         lookupTable.clear();
           
         if (particles) {
             sceneData.remove(particles);
         }
+        
+
+        
             
         for (var i = 0, j = 0; i < data.length; i++) {
             if (config.groups.has(data[i][config.groupAttribute])) {
@@ -364,6 +412,7 @@ var pca3d = (function (data, config) {
         }
                 
         particles = new THREE.Points(geometry, material);
+        //particles.sortParticles = true;
         sceneData.add(particles);
     };    
     
@@ -425,7 +474,7 @@ var pca3d = (function (data, config) {
         sceneData = new THREE.Scene();
         
         cameraData = new THREE.PerspectiveCamera(75, canvas.width / canvas.height, 0.1, 1000);
-        cameraData.position.set(dataBoundingBox.maxX + 25, dataBoundingBox.maxY + 25, dataBoundingBox.maxZ + 25);
+        cameraData.position.set(1.5 * dataViewCube.maxX, 1.5 * dataViewCube.maxY, 1.5 * dataViewCube.maxZ);
                         
         renderer = new THREE.WebGLRenderer({
             canvas: canvas,
@@ -441,7 +490,7 @@ var pca3d = (function (data, config) {
     // Initialize controls.
     var initializeControls = function() {
         controls = new THREE.TrackballControls(cameraData, canvas);
-        controls.target.set(dataBoundingBox.centerX, dataBoundingBox.centerY, dataBoundingBox.centerZ);
+        controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
         controls.rotateSpeed = 2.0;
         controls.zoomSpeed = 1.2;
         controls.panSpeed = 0.8;
@@ -504,8 +553,8 @@ var pca3d = (function (data, config) {
         return dataBoundingRectangle;  
     };
     
-    this.getDataViewSquare = function() {
-        return dataViewSquare;  
+    this.getDataViewCube = function() {
+        return dataViewCube;  
     };
     
     this.deactivate = function() {
@@ -514,7 +563,7 @@ var pca3d = (function (data, config) {
     }
     
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
-    //calculateDataViewSquare();
+    calculateDataViewCube();
     
 
     
