@@ -134,6 +134,8 @@
 //        };
         
         var animating = true;
+        var gridEnabled = true;
+        var enabled3d = false;
         
         var config = {
             canvasId: "#pca_canvas",
@@ -150,8 +152,7 @@
             config.groups.add(legend[i]["color"]);
         }
         
-        var gridEnabled = false;
-        var enabled3d = false;
+
         
         var gl = null;
         

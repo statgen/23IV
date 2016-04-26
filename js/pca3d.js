@@ -69,6 +69,8 @@ var pca3d = (function (data, config) {
     var labelTickMaxX = null;
     var labelTickMinY = null;
     var labelTickMaxY = null;
+    var labelTickMinZ = null;
+    var labelTickMaxZ = null;
     
     // Mouse position in window
     var mouse = {x: 0, y: 0};
@@ -156,7 +158,7 @@ var pca3d = (function (data, config) {
     
     // Create label
     var createLabel = function(text, fontface, fontsize, valign, halign) {
-        var canvas = document.createElement('canvas');
+        var canvas = document.createElement("canvas");
         var context = canvas.getContext("2d");
             
         context.font = fontsize + "px " + fontface;
@@ -195,7 +197,7 @@ var pca3d = (function (data, config) {
             
         var sprite = new THREE.Sprite(material);
         sprite.scale.set(40, 20, 1);
-            
+        
         return {
             cwidth: canvas.width,
             cheight: canvas.height,
@@ -319,23 +321,10 @@ var pca3d = (function (data, config) {
     // Draw axes.
     function drawAxes() {
         var axis_material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
-        var arrow_material = new THREE.MeshBasicMaterial({color: 0x000000});
-                
-        var arrow_geometry = new THREE.CylinderGeometry(0, 1, 4, 12, 1, true);
                 
         var X_geometry = new THREE.Geometry();
 		var Y_geometry = new THREE.Geometry();
 		var Z_geometry = new THREE.Geometry();
-                
-//		X_geometry.vertices.push(
-//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
-//            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ));
-//		Y_geometry.vertices.push(
-//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
-//            new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ));
-//		Z_geometry.vertices.push(
-//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.minZ), 
-//            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ));
         
         X_geometry.vertices.push(
             new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ), 
@@ -351,23 +340,63 @@ var pca3d = (function (data, config) {
 		sceneData.add(new THREE.Line(Y_geometry, axis_material));
 		sceneData.add(new THREE.Line(Z_geometry, axis_material));
         
-        labelX = createLabel(config.xAttribute, "Arial", 24, "bottom", "");
-        labelY = createLabel(config.yAttribute, "Arial", 24, "", "left");
-        labelZ = createLabel(config.zAttribute, "Arial", 24, "bottom", "");
+        labelX = createLabel(config.xAttribute, "Arial", 32, "bottom", "");
+        labelY = createLabel(config.yAttribute, "Arial", 32, "", "left");
+        labelZ = createLabel(config.zAttribute, "Arial", 32, "bottom", "");
         
-//        labelX.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ);
-//        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.maxY, dataViewCube.minZ);
-//        labelZ.sprite.position.set(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ);
-        
-        labelX.sprite.position.set(dataViewCube.centerX, dataViewCube.minY, dataViewCube.maxZ);
-        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.centerY, dataViewCube.maxZ);
-        labelZ.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.centerZ);
+        labelX.sprite.position.set(dataViewCube.centerX, dataViewCube.minY, dataViewCube.maxZ + 5);
+        labelY.sprite.position.set(dataViewCube.minX, dataViewCube.centerY, dataViewCube.maxZ + 5);
+        labelZ.sprite.position.set(dataViewCube.maxX + 5, dataViewCube.minY, dataViewCube.centerZ);
             
         sceneData.add(labelX.sprite);
         sceneData.add(labelY.sprite);
         sceneData.add(labelZ.sprite);
-    }
+        
+        labelTickMinX = createLabel("" + dataViewCube.minX, "Arial", 24, "bottom", "");
+        labelTickMaxX = createLabel("" + dataViewCube.maxX, "Arial", 24, "bottom", "");
+        labelTickMinY = createLabel("" + dataViewCube.minY, "Arial", 24, "bottom", "");
+        labelTickMaxY = createLabel("" + dataViewCube.maxY, "Arial", 24, "bottom", "");
+        labelTickMinZ = createLabel("" + dataViewCube.minZ, "Arial", 24, "bottom", "");
+        labelTickMaxZ = createLabel("" + dataViewCube.maxZ, "Arial", 24, "bottom", "");
+        
+        labelTickMinX.sprite.position.set(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ + 5);
+        labelTickMaxX.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ + 5);
+        labelTickMinY.sprite.position.set(dataViewCube.minX - 5, dataViewCube.minY, dataViewCube.maxZ);
+        labelTickMaxY.sprite.position.set(dataViewCube.minX - 5, dataViewCube.maxY, dataViewCube.maxZ);
+        labelTickMinZ.sprite.position.set(dataViewCube.maxX + 5, dataViewCube.minY, dataViewCube.minZ);
+        labelTickMaxZ.sprite.position.set(dataViewCube.maxX + 5, dataViewCube.minY, dataViewCube.maxZ);
 
+        sceneData.add(labelTickMinX.sprite);
+        sceneData.add(labelTickMaxX.sprite);
+        sceneData.add(labelTickMinY.sprite);
+        sceneData.add(labelTickMaxY.sprite);
+        sceneData.add(labelTickMinZ.sprite);
+        sceneData.add(labelTickMaxZ.sprite);
+        
+        var tick_geometry = new THREE.Geometry();
+        
+        tick_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.minX - 2, dataViewCube.maxY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.maxY, dataViewCube.maxZ));
+        tick_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.minX - 2, dataViewCube.minY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ));
+        tick_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ + 2));
+        tick_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.maxX + 2, dataViewCube.minY, dataViewCube.maxZ));
+        tick_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ), 
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ + 2));
+        tick_geometry.vertices.push(
+            new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.minZ), 
+            new THREE.Vector3(dataViewCube.maxX + 2, dataViewCube.minY, dataViewCube.minZ));
+
+        var ticks = new THREE.LineSegments(tick_geometry, axis_material);
+        sceneData.add(ticks);
+    }
     
     // Update tick labels
     var updateTickLabels = function() {
