@@ -76,8 +76,8 @@
         var height = 500;
         
         var animating = true;
+        
         var gridEnabled = true;
-        var enabled3d = false;
         
         var config = {
             canvasId: "#pca_canvas",
@@ -215,10 +215,12 @@
         
         /* BEGIN: Grid on/off control */
         addSwitchControl(controlsDiv, "Grid", true, function() {
-            gl.enableGrid(true);
+            gridEnabled = true;
+            gl.enableGrid(gridEnabled);
         }, 
         function() {
-            gl.enableGrid(false);
+            gridEnabled = false;
+            gl.enableGrid(gridEnabled);
         });
         /* END: Grid on/off control */
         
