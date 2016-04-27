@@ -77,8 +77,6 @@
         
         var animating = true;
         
-        var gridEnabled = true;
-        
         var config = {
             canvasId: "#pca_canvas",
             nameAttribute: "name",
@@ -87,6 +85,7 @@
             xAttribute: "PC1",
             yAttribute: "PC2",
             zAttribute: "PC3",
+            grid: true,
             groups: new Set()
         };
         
@@ -215,23 +214,26 @@
         
         /* BEGIN: Grid on/off control */
         addSwitchControl(controlsDiv, "Grid", true, function() {
-            gridEnabled = true;
-            gl.enableGrid(gridEnabled);
+            gl.enableGrid();
         }, 
         function() {
-            gridEnabled = false;
-            gl.enableGrid(gridEnabled);
+            gl.disableGrid();
         });
         /* END: Grid on/off control */
         
         /* BEGIN: Axes */
-        addAxisControl(controlsDiv, labels, "X", "X", "PC1", function() {
-            console.log("switched X");
+        addAxisControl(controlsDiv, labels, "X", "X", config.xAttribute, function() {
+            var attribute = d3.select("#X").select("button").datum();
+            gl.setXCoordinateAttr(attribute);
+            gl.updateData();
         });
         
-        addAxisControl(controlsDiv, labels, "Y", "Y", "PC2", function() {
-            console.log("switched Y");
+        addAxisControl(controlsDiv, labels, "Y", "Y", config.yAttribute, function() {
+            var attribute = d3.select("#Y").select("button").datum();
+            gl.setYCoordinateAttr(attribute);
+            gl.updateData();
         });
+        
 //        addAxisControl(controlsDiv, labels, "Z", "Z", "PC3");
         /* BEGIN: End */
         
@@ -290,20 +292,20 @@
             gl.deactivate();
             if (mode_3d) {
                 gl = new pca3d(data, config);
-                addAxisControl(controlsDiv, labels, "Z", "Z", "PC3", function() {
-                    console.log("switched Z");
+                addAxisControl(controlsDiv, labels, "Z", "Z", config.zAttribute, function() {
+                    var attribute = d3.select("#Z").select("button").datum();
+                    gl.setZCoordinateAttr(attribute);
+                    gl.updateData();
                 });
             } else {
                 gl = new pca2d(data, config);
                 removeAxisControl("Z");
             }
             gl.initialize();
-            gl.enableGrid(gridEnabled);
         }
         
         gl = new pca2d(data, config);
         gl.initialize();
-        gl.enableGrid(gridEnabled);
         
         function animate() {
             if (animating) {

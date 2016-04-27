@@ -356,6 +356,10 @@ var pca2d = (function (data, config) {
         var geometry = new THREE.Geometry();
         var step = (axesViewSquare.sideSize - 2 * axesViewSquare.margin) / 10;
         
+        if (grid) {
+            sceneGrid.add(grid);
+        }
+        
         for (var x = axesViewSquare.minX + axesViewSquare.margin + step; x <= axesViewSquare.maxX - axesViewSquare.margin; x += step) {
             geometry.vertices.push(new THREE.Vector3(x, axesViewSquare.minY + axesViewSquare.margin, 0));
             geometry.vertices.push(new THREE.Vector3(x, axesViewSquare.maxY - axesViewSquare.margin, 0));
@@ -367,6 +371,10 @@ var pca2d = (function (data, config) {
         }
         
         grid = new THREE.LineSegments(geometry, material);
+        
+        if (config.grid) {
+            sceneGrid.add(grid);
+        }
     };
     
     // Update normalized mouse coordinates on mouse move event inside canvas
@@ -500,21 +508,43 @@ var pca2d = (function (data, config) {
         controls.update();
         render();
     };
-    
-    this.setNameAttribute = function () {
         
-    };
-    
-    this.setGroupAttribute = function () {
+    this.setXCoordinateAttr = function (name) {
+        config.xAttribute = name;
         
-    };
-    
-    this.setXCoordinateAttr = function () {
+        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
+        calculateDataViewSquare();
         
-    };
-    
-    this.setYCoordinateAttr = function () {
+        cameraData.zoom = 1;
+        cameraData.left = dataViewSquare.minX;
+        cameraData.right = dataViewSquare.maxX;
+        cameraData.top = dataViewSquare.maxY;
+        cameraData.bottom = dataViewSquare.minY;
+        cameraData.near = 0;
+        cameraData.far = 100;
+        cameraData.position.set(0, 0, 100);
+        cameraData.updateProjectionMatrix();
         
+        updateLabel(labelX, name);
+    }; 
+    
+    this.setYCoordinateAttr = function (name) {
+        config.yAttribute = name;
+        
+        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
+        calculateDataViewSquare();
+        
+        cameraData.zoom = 1;
+        cameraData.left = dataViewSquare.minX;
+        cameraData.right = dataViewSquare.maxX;
+        cameraData.top = dataViewSquare.maxY;
+        cameraData.bottom = dataViewSquare.minY;
+        cameraData.near = 0;
+        cameraData.far = 100;
+        cameraData.position.set(0, 0, 100);
+        cameraData.updateProjectionMatrix();
+        
+        updateLabel(labelY, name);
     };
 
     this.getDataBoundingRectangle = function() {
@@ -533,11 +563,19 @@ var pca2d = (function (data, config) {
             .attr("height", originalCanvasHeight);
     };
     
-    this.enableGrid = function(enable) {
+    this.enableGrid = function() {
         if (grid) {
-            if (enable) {
+            if (!config.grid) {
+                config.grid = true;
                 sceneGrid.add(grid);
-            } else {
+            }
+        }
+    }
+    
+    this.disableGrid = function(enable) {
+         if (grid) {
+            if (config.grid) {
+                config.grid = false;
                 sceneGrid.remove(grid);
             }
         }
@@ -545,7 +583,5 @@ var pca2d = (function (data, config) {
     
     calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
     calculateDataViewSquare();
-    
-
     
 });
