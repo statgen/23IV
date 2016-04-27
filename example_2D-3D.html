@@ -96,9 +96,95 @@
         
         var gl = null;
         
-        var controlBlock = null;
-        var btnGroup = null;
-        var list = null;
+        function addSwitchControl(parentDiv, label, isOn, on_callback, off_callback) {
+            var dl = parentDiv.append("dl");
+            
+            dl.append("dt").text(label);
+            
+            var btnGroup = dl.append("dd").append("div").attr("class", "btn-group");
+            
+            btnGroup.append("button")
+                .attr("type", "button")
+                .attr("class", function() { if (!isOn) { return "btn btn-primary btn-sm"; } else { return "btn btn-default btn-sm"; }} )
+                .datum(!isOn)
+                .text("OFF")
+                .on("click", function(d, i) {
+                    var flag = d3.select(this).datum();
+                    flag = !flag;
+                    d3.select(this).datum(flag);
+                    if (flag) {
+                        d3.select(this).attr("class", "btn btn-primary btn-sm");
+                        d3.select(this.nextSibling).datum(!flag);
+                        d3.select(this.nextSibling).attr("class", "btn btn-default btn-sm");
+                        off_callback();
+                    } else {
+                        d3.select(this).attr("class", "btn btn-default btn-sm");
+                        d3.select(this.nextSibling).datum(!flag);
+                        d3.select(this.nextSibling).attr("class", "btn btn-primary btn-sm");
+                        on_callback();
+                    } 
+                });
+            
+            btnGroup.append("button")
+                .attr("type", "button")
+                .attr("class", function() { if (isOn) { return "btn btn-primary btn-sm"; } else { return "btn btn-default btn-sm"; }} )
+                .datum(isOn)
+                .text("ON")
+                .on("click", function(d, i) {
+                    var flag = d3.select(this).datum();
+                    flag = !flag;
+                    d3.select(this).datum(flag);
+                    if (flag) {
+                        d3.select(this).attr("class", "btn btn-primary btn-sm");
+                        d3.select(this.previousSibling).datum(!flag);
+                        d3.select(this.previousSibling).attr("class", "btn btn-default btn-sm");
+                        on_callback();
+                    } else {
+                        d3.select(this).attr("class", "btn btn-default btn-sm");
+                        d3.select(this.previousSibling).datum(!flag);
+                        d3.select(this.previousSibling).attr("class", "btn btn-primary btn-sm");
+                        off_callback();
+                    }
+                });
+        }
+        
+        function addAxisControl(parentDiv, values, id, label, initValue, callback) {
+            var dl = parentDiv.append("dl").attr("id", id);
+            
+            dl.append("dt").text(label);
+                
+            var btnGroup = dl.append("dd").append("div").attr("class", "btn-group");
+            
+            btnGroup.append("button")
+                .attr("type", "button")
+                .attr("class", "btn btn-default btn-sm dropdown-toggle")
+                .attr("data-toggle", "dropdown")
+                .datum(initValue)
+                .text(function(d) { return d + " "})
+                .append("span")
+                    .attr("class", "caret");
+        
+            var ul = btnGroup.append("ul").attr("class", "dropdown-menu");
+            
+            values.forEach(function(row, index) {
+                ul.append("li").append("a")
+                    .attr("href", "#")
+                    .datum(row)
+                    .text(function(d) {return d;})
+                    .on("click", function(d, i) {
+                        d3.select("#" + id).select("button")
+                            .datum(d)
+                            .text( function(d) {return d + " ";} )
+                            .append("span")
+                                .attr("class", "caret");
+                        callback();
+                    });
+            });
+        }
+        
+        function removeAxisControl(id) {
+            d3.select("#" + id).remove();
+        }
         
         var plotDiv = d3.select("body").append("div")
             .attr("id", "plot");
@@ -107,174 +193,44 @@
         var controlsDiv = plotDiv.append("div")
             .attr("id", "controls");
 
-        var canvas3d = plotDiv.append("canvas")
+        var canvas = plotDiv.append("canvas")
             .attr("id", "pca_canvas")
             .attr("width", width)
             .attr("height", height).node();
-//            .on("mousemove", onMouseMoveInsideCanvas).node();
         
         /* BEGIN: 2D/3D switch control */
-        controlBlock = controlsDiv.append("dl");
-        controlBlock.append("dt").text("3D");
-        btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "btn-group");
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-primary btn-sm")
-            .text("OFF")
-            .on("click", function(d, i) {
-                animating = false;
-                enabled3d = !enabled3d;
-                if (enabled3d) {
-                    d3.select(this).attr("class", "btn btn-default btn-sm");
-                    d3.select(this.nextSibling).attr("class", "btn btn-primary btn-sm");
-                } else {
-                    d3.select(this).attr("class", "btn btn-primary btn-sm");
-                    d3.select(this.nextSibling).attr("class", "btn btn-default btn-sm");
-                } 
-                switch_mode(enabled3d);
-                animating = true;
-                animate();
-            });
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-default btn-sm")
-            .text("ON")
-            .on("click", function(d, i) {
-                animating = false;
-                enabled3d = !enabled3d;
-                if (enabled3d) {
-                    d3.select(this).attr("class", "btn btn-primary btn-sm");
-                    d3.select(this.previousSibling).attr("class", "btn btn-default btn-sm");
-                } else {
-                    d3.select(this).attr("class", "btn btn-default btn-sm");
-                    d3.select(this.previousSibling).attr("class", "btn btn-primary btn-sm");
-                }
-                switch_mode(enabled3d);
-                animating = true;
-                animate();
-            });
+        addSwitchControl(controlsDiv, "3D", false, function() {
+            animating = false;
+            switch_mode(true);
+            animating = true;
+            animate();
+        }, 
+        function() {
+            animating = false;
+            switch_mode(false);
+            animating = true;
+            animate();            
+        });
         /* END: 2D/3D switch control */
         
         /* BEGIN: Grid on/off control */
-        controlBlock = controlsDiv.append("dl");
-        controlBlock.append("dt").text("Grid");
-        btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "btn-group");
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-default btn-sm")
-            .text("OFF")
-            .on("click", function(d, i) {
-                gridEnabled = !gridEnabled;
-                if (gridEnabled) {
-                    d3.select(this).attr("class", "btn btn-default btn-sm");
-                    d3.select(this.nextSibling).attr("class", "btn btn-primary btn-sm");
-                } else {
-                    d3.select(this).attr("class", "btn btn-primary btn-sm");
-                    d3.select(this.nextSibling).attr("class", "btn btn-default btn-sm");
-                } 
-                gl.enableGrid(gridEnabled);
-            });
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-primary btn-sm")
-            .text("ON")
-            .on("click", function(d, i) {
-                gridEnabled = !gridEnabled;
-                if (gridEnabled) {
-                    d3.select(this).attr("class", "btn btn-primary btn-sm");
-                    d3.select(this.previousSibling).attr("class", "btn btn-default btn-sm");
-                } else {
-                    d3.select(this).attr("class", "btn btn-default btn-sm");
-                    d3.select(this.previousSibling).attr("class", "btn btn-primary btn-sm");
-                }
-                gl.enableGrid(gridEnabled);
-            });
+        addSwitchControl(controlsDiv, "Grid", true, function() {
+            gl.enableGrid(true);
+        }, 
+        function() {
+            gl.enableGrid(false);
+        });
         /* END: Grid on/off control */
         
         /* BEGIN: Axes */
-        controlBlock = controlsDiv.append("dl");
-        controlBlock.append("dt").text("X");
-        btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "btn-group");
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-default btn-sm dropdown-toggle")
-            .attr("data-toggle", "dropdown")
-            .attr("id", "X")
-            .text("PC1 ")
-            .append("span")
-                .attr("class", "caret");
-        list = btnGroup.append("ul")
-            .attr("class", "dropdown-menu");
-        labels.forEach(function(row, index) {
-            list.append("li").append("a")
-                .attr("href", "#")
-                .datum(row)
-                .text(function(d) {return d;})
-                .on("click", function(d, i) {
-                    d3.select("#X")
-                        .text(d + " ")
-                        .append("span")
-                            .attr("class", "caret");
-                });
+        addAxisControl(controlsDiv, labels, "X", "X", "PC1", function() {
+            console.log("switched X");
         });
         
-        controlBlock = controlsDiv.append("dl");
-        controlBlock.append("dt").text("Y");
-        btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "btn-group");
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-default btn-sm dropdown-toggle")
-            .attr("data-toggle", "dropdown")
-            .attr("id", "Y")
-            .text("PC2 ")
-            .append("span")
-                .attr("class", "caret");
-        list = btnGroup.append("ul")
-            .attr("class", "dropdown-menu");
-        labels.forEach(function(row, index) {
-            list.append("li").append("a")
-                .attr("href", "#")
-                .datum(row)
-                .text(function(d) {return d;})
-                .on("click", function(d, i) {
-                    d3.select("#Y")
-                        .text(d + " ")
-                        .append("span")
-                            .attr("class", "caret");
-                });
+        addAxisControl(controlsDiv, labels, "Y", "Y", "PC2", function() {
+            console.log("switched Y");
         });
-
-        
-        controlBlock = controlsDiv.append("dl");
-        controlBlock.append("dt").text("Z");
-        btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "btn-group");
-        btnGroup.append("button")
-            .attr("type", "button")
-            .attr("class", "btn btn-default btn-sm dropdown-toggle")
-            .attr("data-toggle", "dropdown")
-            .attr("id", "Z")
-            .text("PC3 ")
-            .append("span")
-                .attr("class", "caret");
-        list = btnGroup.append("ul")
-            .attr("class", "dropdown-menu");
-        labels.forEach(function(row, index) {
-            list.append("li").append("a")
-                .attr("href", "#")
-                .datum(row)
-                .text(function(d) {return d;})
-                .on("click", function(d, i) {
-                    d3.select("#Z")
-                        .text(d + " ")
-                        .append("span")
-                            .attr("class", "caret");
-                });
-        });
+//        addAxisControl(controlsDiv, labels, "Z", "Z", "PC3");
         /* BEGIN: End */
         
 //        controlsDiv.append("div")
@@ -332,15 +288,18 @@
             gl.deactivate();
             if (mode_3d) {
                 gl = new pca3d(data, config);
+                addAxisControl(controlsDiv, labels, "Z", "Z", "PC3", function() {
+                    console.log("switched Z");
+                });
             } else {
                 gl = new pca2d(data, config);
+                removeAxisControl("Z");
             }
             gl.initialize();
             gl.enableGrid(gridEnabled);
         }
         
         gl = new pca2d(data, config);
-//        gl = new pca3d(data, config);
         gl.initialize();
         gl.enableGrid(gridEnabled);
         
@@ -350,10 +309,6 @@
             }
             gl.draw();
         }
-        
-        //canvas by id
-        //input data
-        //input selected
         
         animate();
         
