@@ -98,6 +98,7 @@
         
         var controlBlock = null;
         var btnGroup = null;
+        var list = null;
         
         var plotDiv = d3.select("body").append("div")
             .attr("id", "plot");
@@ -116,7 +117,7 @@
         controlBlock = controlsDiv.append("dl");
         controlBlock.append("dt").text("3D");
         btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "col-2 btn-group");
+            .attr("class", "btn-group");
         btnGroup.append("button")
             .attr("type", "button")
             .attr("class", "btn btn-primary btn-sm")
@@ -159,7 +160,7 @@
         controlBlock = controlsDiv.append("dl");
         controlBlock.append("dt").text("Grid");
         btnGroup = controlBlock.append("dd").append("div")
-            .attr("class", "col-2 btn-group");
+            .attr("class", "btn-group");
         btnGroup.append("button")
             .attr("type", "button")
             .attr("class", "btn btn-default btn-sm")
@@ -192,6 +193,90 @@
             });
         /* END: Grid on/off control */
         
+        /* BEGIN: Axes */
+        controlBlock = controlsDiv.append("dl");
+        controlBlock.append("dt").text("X");
+        btnGroup = controlBlock.append("dd").append("div")
+            .attr("class", "btn-group");
+        btnGroup.append("button")
+            .attr("type", "button")
+            .attr("class", "btn btn-default btn-sm dropdown-toggle")
+            .attr("data-toggle", "dropdown")
+            .attr("id", "X")
+            .text("PC1 ")
+            .append("span")
+                .attr("class", "caret");
+        list = btnGroup.append("ul")
+            .attr("class", "dropdown-menu");
+        labels.forEach(function(row, index) {
+            list.append("li").append("a")
+                .attr("href", "#")
+                .datum(row)
+                .text(function(d) {return d;})
+                .on("click", function(d, i) {
+                    d3.select("#X")
+                        .text(d + " ")
+                        .append("span")
+                            .attr("class", "caret");
+                });
+        });
+        
+        controlBlock = controlsDiv.append("dl");
+        controlBlock.append("dt").text("Y");
+        btnGroup = controlBlock.append("dd").append("div")
+            .attr("class", "btn-group");
+        btnGroup.append("button")
+            .attr("type", "button")
+            .attr("class", "btn btn-default btn-sm dropdown-toggle")
+            .attr("data-toggle", "dropdown")
+            .attr("id", "Y")
+            .text("PC2 ")
+            .append("span")
+                .attr("class", "caret");
+        list = btnGroup.append("ul")
+            .attr("class", "dropdown-menu");
+        labels.forEach(function(row, index) {
+            list.append("li").append("a")
+                .attr("href", "#")
+                .datum(row)
+                .text(function(d) {return d;})
+                .on("click", function(d, i) {
+                    d3.select("#Y")
+                        .text(d + " ")
+                        .append("span")
+                            .attr("class", "caret");
+                });
+        });
+
+        
+        controlBlock = controlsDiv.append("dl");
+        controlBlock.append("dt").text("Z");
+        btnGroup = controlBlock.append("dd").append("div")
+            .attr("class", "btn-group");
+        btnGroup.append("button")
+            .attr("type", "button")
+            .attr("class", "btn btn-default btn-sm dropdown-toggle")
+            .attr("data-toggle", "dropdown")
+            .attr("id", "Z")
+            .text("PC3 ")
+            .append("span")
+                .attr("class", "caret");
+        list = btnGroup.append("ul")
+            .attr("class", "dropdown-menu");
+        labels.forEach(function(row, index) {
+            list.append("li").append("a")
+                .attr("href", "#")
+                .datum(row)
+                .text(function(d) {return d;})
+                .on("click", function(d, i) {
+                    d3.select("#Z")
+                        .text(d + " ")
+                        .append("span")
+                            .attr("class", "caret");
+                });
+        });
+        /* BEGIN: End */
+        
 //        controlsDiv.append("div")
 //            .attr("class", "control")
 //            .text("Export PNG");
@@ -201,7 +286,7 @@
 //            .text("Export CSV");
         
     
-        /* BEGIN: Draw legend */
+        /* BEGIN:  Legend */
         btnGroup = legendDiv.append("div")
             .attr("class", "btn-group-vertical")
             .attr("role", "group");
@@ -241,7 +326,7 @@
             });
             
         });
-        /* END: Draw legend */
+        /* END: Legend */
         
         function switch_mode(mode_3d) {
             gl.deactivate();
