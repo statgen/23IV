@@ -3,7 +3,6 @@ var pca2d = (function (data, config) {
     var canvas = d3.select(config.canvasId).node();
     var originalCanvasWidth = canvas.width;
     var originalCanvasHeight = canvas.height;
-
     
     // Bounding rectangle for data
     var dataBoundingRectangle = {
@@ -59,6 +58,7 @@ var pca2d = (function (data, config) {
     var controls = null;
     var particles = null;
     var grid = null;
+    var selection = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -79,6 +79,8 @@ var pca2d = (function (data, config) {
     var tooltip = null;
     // Currently highlighted object ID
     var highlighted = null;
+    // Currently selected object ID
+    var selected = null;
     
     var lookupTable = new Map();
     
@@ -220,6 +222,21 @@ var pca2d = (function (data, config) {
         label.sprite.material.map.needsUpdate = true;
     };
     
+    // Update tick labels
+    var updateTickLabels = function() {
+        var cx = dataViewSquare.centerX + cameraData.position.x;
+        var cy = dataViewSquare.centerY + cameraData.position.y;
+        var minx = cx + (dataViewSquare.minX - dataViewSquare.centerX) / cameraData.zoom;
+        var maxx = cx + (dataViewSquare.maxX - dataViewSquare.centerX) / cameraData.zoom;
+        var miny = cy + (dataViewSquare.minY - dataViewSquare.centerY) / cameraData.zoom;
+        var maxy = cy + (dataViewSquare.maxY - dataViewSquare.centerY) / cameraData.zoom;
+
+        updateLabel(labelTickMinX, getTickXLabel(axesViewSquare.xAxis.start.x, minx, maxx));
+        updateLabel(labelTickMaxX, getTickXLabel(axesViewSquare.xAxis.end.x, minx, maxx));
+        updateLabel(labelTickMinY, getTickYLabel(axesViewSquare.yAxis.start.y, miny, maxy));
+        updateLabel(labelTickMaxY, getTickYLabel(axesViewSquare.yAxis.end.y, miny, maxy));
+    }
+    
     // Get X axis tick label at tick_position
     var getTickXLabel = function(tick_position, data_view_minX, data_view_maxX) {
         var unit = (data_view_maxX - data_view_minX) / axesViewSquare.sideSize;
@@ -299,21 +316,6 @@ var pca2d = (function (data, config) {
         sceneAxes.add(labelY.sprite);
     };
     
-    // Update tick labels
-    var updateTickLabels = function() {
-        var cx = dataViewSquare.centerX + cameraData.position.x;
-        var cy = dataViewSquare.centerY + cameraData.position.y;
-        var minx = cx + (dataViewSquare.minX - dataViewSquare.centerX) / cameraData.zoom;
-        var maxx = cx + (dataViewSquare.maxX - dataViewSquare.centerX) / cameraData.zoom;
-        var miny = cy + (dataViewSquare.minY - dataViewSquare.centerY) / cameraData.zoom;
-        var maxy = cy + (dataViewSquare.maxY - dataViewSquare.centerY) / cameraData.zoom;
-
-        updateLabel(labelTickMinX, getTickXLabel(axesViewSquare.xAxis.start.x, minx, maxx));
-        updateLabel(labelTickMaxX, getTickXLabel(axesViewSquare.xAxis.end.x, minx, maxx));
-        updateLabel(labelTickMinY, getTickYLabel(axesViewSquare.yAxis.start.y, miny, maxy));
-        updateLabel(labelTickMaxY, getTickYLabel(axesViewSquare.yAxis.end.y, miny, maxy));
-    }
-    
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
@@ -330,24 +332,40 @@ var pca2d = (function (data, config) {
         
 //        material.alphaTest = 0.5;
         material.depthWrite = false;
-                    
+        
+        if (selected) {         
+            var selectedDataItem = lookupTable.get(selected);
+            if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
+                //sceneData.remove(selection);
+                selected = null;
+            }
+        }
+        
         lookupTable.clear();
           
         if (particles) {
             sceneData.remove(particles);
         }
-            
+        
         for (var i = 0, j = 0; i < data.length; i++) {
             if (config.groups.has(data[i][config.groupAttribute])) {
                 geometry.vertices.push(new THREE.Vector3(data[i][config.xAttribute], data[i][config.yAttribute], 0));
                 geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
                 lookupTable.set(j, i);
+                if (i == selectedDataItem) {
+                    selected = j;
+                }
                 j++;
             }
         }
-                
+            
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
+        
+//        if (selected) {
+//            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+//            sceneData.add(selection);
+//        }
     };
     
     // Draw grid
@@ -377,6 +395,30 @@ var pca2d = (function (data, config) {
         }
     };
     
+    // Draw square for point selection
+    var drawSelection = function(size, width) {
+        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: width});
+        var geometry = new THREE.Geometry();
+        var normalizedSize = (dataViewSquare.sideSize / canvas.width) * size * window.devicePixelRatio;
+        
+        if (selection) {
+            sceneData.remove(selection);
+        }
+                            
+        geometry.vertices.push(new THREE.Vector3(-normalizedSize / 2, -normalizedSize / 2, 0));
+        geometry.vertices.push(new THREE.Vector3(normalizedSize / 2, -normalizedSize / 2, 0));
+        geometry.vertices.push(new THREE.Vector3(normalizedSize / 2, normalizedSize / 2, 0));
+        geometry.vertices.push(new THREE.Vector3(-normalizedSize / 2, normalizedSize / 2, 0));
+        geometry.vertices.push(new THREE.Vector3(-normalizedSize / 2, -normalizedSize / 2, 0));
+            
+        selection = new THREE.Line(geometry, material);
+        
+        if (selected) {
+            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+            sceneData.add(selection);
+        }
+    };
+    
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {
         var boundingClientRect = canvas.getBoundingClientRect();
@@ -386,6 +428,21 @@ var pca2d = (function (data, config) {
         mouse2d.y = (-(d3.event.y - boundingClientRect.top) / canvas.height) * 2 * window.devicePixelRatio + 1;
     };
     
+    // On mouse click inside canvas
+    var onMouseClickInsideCanvas = function() {
+        if (selected) { 
+            sceneData.remove(selection);
+        }
+
+        if ((picked) && (picked != selected)) {
+            selected = picked;
+            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+            sceneData.add(selection);
+        } else {
+            selected = null;
+        }
+    };
+        
     // Find 3D object under mouse pointer
     var updatePicked = function() {
         raycaster.setFromCamera(mouse2d, cameraData);
@@ -470,6 +527,7 @@ var pca2d = (function (data, config) {
         controls.addEventListener('change', render);
         
         d3.select(config.canvasId).on("mousemove", onMouseMoveInsideCanvas);
+        d3.select(config.canvasId).on("click", onMouseClickInsideCanvas);
     };
     
     // Initialize view
@@ -477,6 +535,7 @@ var pca2d = (function (data, config) {
         drawData();
         drawGrid();
         drawAxes();
+        drawSelection(10, 2);
     };
     
     this.initialize = function() {
@@ -491,17 +550,19 @@ var pca2d = (function (data, config) {
         updateTooltip();
         updateTickLabels();
         
+        selection.scale.set(1 / cameraData.zoom, 1 / cameraData.zoom, 1);
+        
         renderer.clear();
         renderer.render(sceneGrid, cameraGrid);
         renderer.clearDepth();
         renderer.render(sceneData, cameraData);
         renderer.clearDepth();
         renderer.render(sceneAxes, cameraAxes);
-        
     };
     
     this.updateData = function() {
         drawData();
+        drawSelection(10, 2);
     }
     
     this.draw = function() {
@@ -525,6 +586,8 @@ var pca2d = (function (data, config) {
         cameraData.position.set(0, 0, 100);
         cameraData.updateProjectionMatrix();
         
+        controls.target.set(0, 0, 0);
+        
         updateLabel(labelX, name);
     }; 
     
@@ -544,20 +607,15 @@ var pca2d = (function (data, config) {
         cameraData.position.set(0, 0, 100);
         cameraData.updateProjectionMatrix();
         
+        controls.target.set(0, 0, 0);
+        
         updateLabel(labelY, name);
-    };
-
-    this.getDataBoundingRectangle = function() {
-        return dataBoundingRectangle;  
-    };
-    
-    this.getDataViewSquare = function() {
-        return dataViewSquare;  
     };
     
     this.deactivate = function() {
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
+        d3.select(config.canvasId).on("click", null);
         d3.select(config.canvasId)
             .attr("width", originalCanvasWidth)
             .attr("height", originalCanvasHeight);

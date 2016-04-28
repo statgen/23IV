@@ -62,6 +62,7 @@ var pca3d = (function (data, config) {
     var grid = null;
     var axes = null;
     var ticks = null;
+    var selection = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -85,6 +86,8 @@ var pca3d = (function (data, config) {
     var tooltip = null;
     // Currently highlighted object ID
     var highlighted = null;
+    // Currently selected object ID
+    var selected = null;
     
     var lookupTable = new Map();
     
@@ -254,72 +257,7 @@ var pca3d = (function (data, config) {
 //        var label = data_view_minY + unit * (tick_position - axesViewSquare.minY);
 //        return label.toFixed(2);
 //    };
-    
-    // Draw axes
-//    var drawAxes = function() {
-//        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
-//            
-//        var X_geometry = new THREE.Geometry();
-//        var tickMinX_geometry = new THREE.Geometry();
-//        var tickMaxX_geometry = new THREE.Geometry();
-//                        
-//        X_geometry.vertices.push(
-//            new THREE.Vector3(axesViewSquare.xAxis.start.x, axesViewSquare.xAxis.start.y, 0), 
-//            new THREE.Vector3(axesViewSquare.xAxis.end.x, axesViewSquare.xAxis.end.y, 0));
-//        tickMinX_geometry.vertices.push(
-//            new THREE.Vector3(axesViewSquare.xAxis.start.x, axesViewSquare.xAxis.start.y, 0), 
-//            new THREE.Vector3(axesViewSquare.xAxis.start.x, axesViewSquare.xAxis.start.y - axesViewSquare.tickSize, 0));
-//        tickMaxX_geometry.vertices.push(
-//            new THREE.Vector3(axesViewSquare.xAxis.end.x, axesViewSquare.xAxis.end.y, 0), 
-//            new THREE.Vector3(axesViewSquare.xAxis.end.x, axesViewSquare.xAxis.end.y - axesViewSquare.tickSize, 0));
-//            
-//        sceneAxes.add(new THREE.Line(X_geometry, material));
-//        sceneAxes.add(new THREE.Line(tickMinX_geometry, material));
-//        sceneAxes.add(new THREE.Line(tickMaxX_geometry, material));
-//        
-//        var Y_geometry = new THREE.Geometry();
-//        var tickMinY_geometry = new THREE.Geometry();
-//        var tickMaxY_geometry = new THREE.Geometry();
-//            
-//        Y_geometry.vertices.push(
-//            new THREE.Vector3(axesViewSquare.yAxis.start.x, axesViewSquare.yAxis.start.y, 0), 
-//            new THREE.Vector3(axesViewSquare.yAxis.end.x, axesViewSquare.yAxis.end.y, 0));
-//        tickMinY_geometry.vertices.push(
-//            new THREE.Vector3(axesViewSquare.yAxis.start.x, axesViewSquare.yAxis.start.y, 0), 
-//            new THREE.Vector3(axesViewSquare.yAxis.start.x - axesViewSquare.tickSize, axesViewSquare.yAxis.start.y, 0));
-//        tickMaxY_geometry.vertices.push(
-//            new THREE.Vector3(axesViewSquare.yAxis.end.x, axesViewSquare.yAxis.end.y, 0), 
-//            new THREE.Vector3(axesViewSquare.yAxis.end.x - axesViewSquare.tickSize, axesViewSquare.yAxis.end.y, 0));
-//            
-//        sceneAxes.add(new THREE.Line(Y_geometry, material));
-//        sceneAxes.add(new THREE.Line(tickMinY_geometry, material));
-//        sceneAxes.add(new THREE.Line(tickMaxY_geometry, material));
-//
-//        labelTickMinX = createLabel(getTickXLabel(axesViewSquare.xAxis.start.x, dataViewSquare.minX, dataViewSquare.maxX), "Arial", 16, "bottom", "");
-//        labelTickMaxX = createLabel(getTickXLabel(axesViewSquare.xAxis.end.x, dataViewSquare.minX, dataViewSquare.maxX), "Arial", 16, "bottom", "");
-//        labelTickMinY = createLabel(getTickYLabel(axesViewSquare.yAxis.start.y, dataViewSquare.minY, dataViewSquare.maxY), "Arial", 16, "", "left");
-//        labelTickMaxY = createLabel(getTickYLabel(axesViewSquare.yAxis.end.y, dataViewSquare.minY, dataViewSquare.maxY), "Arial", 16, "", "left");
-//        
-//        labelTickMinX.sprite.position.set(axesViewSquare.xAxis.start.x, axesViewSquare.xAxis.start.y - axesViewSquare.tickSize, 0);
-//        labelTickMaxX.sprite.position.set(axesViewSquare.xAxis.end.x, axesViewSquare.xAxis.end.y - axesViewSquare.tickSize, 0);
-//        labelTickMinY.sprite.position.set(axesViewSquare.yAxis.start.x - axesViewSquare.tickSize - 0.1, axesViewSquare.yAxis.start.y, 0);
-//        labelTickMaxY.sprite.position.set(axesViewSquare.yAxis.end.x - axesViewSquare.tickSize - 0.1, axesViewSquare.yAxis.end.y, 0);
-//
-//        sceneAxes.add(labelTickMinX.sprite);
-//        sceneAxes.add(labelTickMaxX.sprite);
-//        sceneAxes.add(labelTickMinY.sprite);
-//        sceneAxes.add(labelTickMaxY.sprite);
-//            
-//        labelX = createLabel(config.xAttribute, "Arial", 24, "top", "");
-//        labelY = createLabel(config.yAttribute, "Arial", 24, "", "right");
-//            
-//        labelX.sprite.position.set(0, axesViewSquare.minY, 0);
-//        labelY.sprite.position.set(axesViewSquare.minX, 0, 0);
-//            
-//        sceneAxes.add(labelX.sprite);
-//        sceneAxes.add(labelY.sprite);
-//    };
-    
+        
     // Draw axes.
     function drawAxes() {
         var axis_material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
@@ -510,6 +448,14 @@ var pca3d = (function (data, config) {
         });
         
         material.alphaTest = 0.5;
+        
+        if (selected) {         
+            var selectedDataItem = lookupTable.get(selected);
+            if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
+                //sceneData.remove(selection);
+                selected = null;
+            }
+        }
                     
         lookupTable.clear();
           
@@ -525,14 +471,81 @@ var pca3d = (function (data, config) {
                     data[i][config.zAttribute]));
                 geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
                 lookupTable.set(j, i);
+                if (i == selectedDataItem) {
+                    selected = j;
+                }
                 j++;
             }
         }
                 
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
-    };    
+    };
     
+    // Draw square for point selection
+    var drawSelection = function(size, width) {
+        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: width});
+        var geometry = new THREE.Geometry();
+        
+        if (selection) {
+            sceneData.remove(selection);
+        }
+                                              
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, -0.5));
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, -0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, -0.5));
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, -0.5));
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0.5));
+
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, 0.5));
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, 0.5));
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, 0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, 0.5));
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, -0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, -0.5));
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, -0.5));
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, -0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, -0.5));
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, 0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, 0.5));
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, 0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, 0.5));
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0.5));
+        
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, 0.5));
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
+        
+        selection = new THREE.LineSegments(geometry, material);
+        
+        if (selected) {
+            var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
+            var vFOV = cameraData.fov * Math.PI / 180;
+            var height = 2 * Math.tan(vFOV / 2) * distance;
+        
+            var normalizedSize2 = (height / canvas.width) * 10 * window.devicePixelRatio;
+            var zoomLevel = normalizedSize2;
+            
+            selection.position.set(
+            particles.geometry.vertices[selected].x, 
+            particles.geometry.vertices[selected].y, 
+            particles.geometry.vertices[selected].z);
+            selection.scale.set(zoomLevel, zoomLevel, zoomLevel);
+            sceneData.add(selection);
+        }
+    };
+
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {
         var boundingClientRect = canvas.getBoundingClientRect();
@@ -540,6 +553,25 @@ var pca3d = (function (data, config) {
         mouse.y = d3.event.y;
         mouse2d.x = ((d3.event.x - boundingClientRect.left) / canvas.width) * 2 * window.devicePixelRatio - 1;
         mouse2d.y = (-(d3.event.y - boundingClientRect.top) / canvas.height) * 2 * window.devicePixelRatio + 1;
+    };
+    
+    // On mouse click inside canvas
+    var onMouseClickInsideCanvas = function() {
+        if (selected) { 
+            sceneData.remove(selection);
+        }
+
+        if ((picked) && (picked != selected)) {
+            selected = picked;
+            selection.position.set(
+                particles.geometry.vertices[selected].x, 
+                particles.geometry.vertices[selected].y, 
+                particles.geometry.vertices[selected].z);
+            sceneData.add(selection);
+            //console.log(selection);
+        } else {
+            selected = null;
+        }
     };
     
     // Find 3D object under mouse pointer
@@ -618,6 +650,7 @@ var pca3d = (function (data, config) {
         controls.addEventListener('change', render);
         
         d3.select(config.canvasId).on("mousemove", onMouseMoveInsideCanvas);
+        d3.select(config.canvasId).on("click", onMouseClickInsideCanvas);
     };
     
     // Initialize view
@@ -625,6 +658,7 @@ var pca3d = (function (data, config) {
         drawData();
         drawGrid();
         drawAxes();  
+        drawSelection(10, 2);
     };
     
     this.initialize = function() {
@@ -638,6 +672,19 @@ var pca3d = (function (data, config) {
         highlightPicked();
         updateTooltip();
 //        updateTickLabels();
+    
+        if (selected) {
+            //var normalizedSize = (dataViewCube.sideSize / canvas.width) * 10 * window.devicePixelRatio;
+            var normalizedSize = 1;
+                    var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
+            var vFOV = cameraData.fov * Math.PI / 180;
+            var height = 2 * Math.tan(vFOV / 2) * distance;
+        
+            var normalizedSize2 = (height / canvas.width) * 10 * window.devicePixelRatio;
+            var zoomLevel = normalizedSize2 / normalizedSize;
+        
+        selection.scale.set(zoomLevel, zoomLevel, zoomLevel);
+        }
         
         renderer.render(sceneData, cameraData);
     };
@@ -646,6 +693,7 @@ var pca3d = (function (data, config) {
         drawData();
         drawGrid();
         drawAxes();
+        drawSelection(10, 2);
     }
     
     this.draw = function() {
@@ -706,6 +754,7 @@ var pca3d = (function (data, config) {
     this.deactivate = function() {
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
+        d3.select(config.canvasId).on("click", null);
         d3.select(config.canvasId)
             .attr("width", originalCanvasWidth)
             .attr("height", originalCanvasHeight);
@@ -727,6 +776,29 @@ var pca3d = (function (data, config) {
                 sceneData.remove(grid);
             }
         }
+    }
+    
+    this.getSelection = function() {
+//        console.log(cameraData);
+//        console.log(controls);
+        //var vFOV = camera.fov * Math.PI / 180;
+        //var height = 2 * Math.tan(vFOV / 2) *
+        
+        //console.log(cameraData.position);
+        //console.log(particles.geometry.vertices[selected]);    
+        //console.log(cameraData.position.distanceTo(particles.geometry.vertices[selected]));
+        
+        var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
+        var vFOV = cameraData.fov * Math.PI / 180;
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        
+        var normalizedSize = (dataViewCube.sideSize / canvas.width) * 10 * window.devicePixelRatio;
+        var normalizedSize2 = (width / canvas.width) * 10 * window.devicePixelRatio;
+        var zoomLevel = normalizedSize / normalizedSize2;
+        
+        console.log(normalizedSize + " " + normalizedSize2 + " " + height + " " + zoomLevel);
+        
+        //return selection;
     }
            
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
