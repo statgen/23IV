@@ -428,6 +428,7 @@ var pca2d = (function (data, config) {
                 config.selected = null;
                 selected = null;
             }
+            config.selectedCallback();
         }
     };
     

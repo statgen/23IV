@@ -11,7 +11,7 @@
         #plot {
             position: relative;
             width: 800px;
-            height: 650px;
+            height: 700px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -26,6 +26,13 @@
             position: absolute;
             top: 15%;
             left: 0px;
+        }
+        
+        #piechart {
+            position: absolute;
+            width: 800px;
+            height: 200px;
+            top: 500px;
         }
 
         #pca_canvas {
@@ -87,7 +94,8 @@
             zAttribute: "PC3",
             grid: true,
             groups: new Set(),
-            selected: null
+            selected: null,
+            selectedCallback: null
         };
         
         for (var i = 0; i < legend.length; i++) {
@@ -182,6 +190,32 @@
             });
         }
         
+        function addSliderControl(parentDiv, id, label, minValue, maxValue, initValue, callback) {
+            var dl = parentDiv.append("dl").attr("id", id);
+            
+            dl.append("dt").text(label);
+            
+            var btnGroup =  dl.append("dd").append("ul")
+                                .attr("class", "list-inline");
+            
+            btnGroup.append("li").append("input")
+                .attr("type", "range")
+                .attr("min", minValue)
+                .attr("max", maxValue)
+                .attr("step", 1)
+                .attr("value", initValue)
+                .style("width", "200px")
+                .on("change", function() {
+                    d3.select(this.parentElement.nextElementSibling).text(this.value);
+                    callback();
+                })
+                .on("input", function() {
+                    d3.select(this.parentElement.nextElementSibling).text(this.value);
+                });
+            
+            btnGroup.append("li").text(initValue);
+        }
+        
         function removeAxisControl(id) {
             d3.select("#" + id).remove();
         }
@@ -192,6 +226,8 @@
             .attr("id", "legend");
         var controlsDiv = plotDiv.append("div")
             .attr("id", "controls");
+        var piechartDiv = plotDiv.append("div")
+            .attr("id", "piechart");
 
         var canvas = plotDiv.append("canvas")
             .attr("id", "pca_canvas")
@@ -238,13 +274,13 @@
 //        addAxisControl(controlsDiv, labels, "Z", "Z", "PC3");
         /* BEGIN: End */
         
-//        controlsDiv.append("div")
-//            .attr("class", "control")
-//            .text("Export PNG");
-//            
-//        controlsDiv.append("div")
-//            .attr("class", "control")
-//            .text("Export CSV");
+        /* BEGIN: Piechart */
+        piechartDiv.append("h3")
+            .attr("id", "pielabel")
+            .text("Selected: None");
+        addSliderControl(piechartDiv, "pc", "Principal components", 1, labels.length, 1, function() {});
+        addSliderControl(piechartDiv, "k", "K nearest neighbors", 1, 10, 2, function() {});
+        /* END: Piechart */
         
     
         /* BEGIN:  Legend */
@@ -303,6 +339,14 @@
                 removeAxisControl("Z");
             }
             gl.initialize();
+        }
+        
+        config.selectedCallback = function() {
+            if (config.selected) {
+                d3.select("#pielabel").text("Selected: " + data[config.selected].name);
+            } else {
+                d3.select("#pielabel").text("Selected: None");
+            }
         }
         
         gl = new pca2d(data, config);
