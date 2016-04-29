@@ -449,10 +449,12 @@ var pca3d = (function (data, config) {
         
         material.alphaTest = 0.5;
         
+        var selectedDataItem = null;
+        
         if (selected) {         
-            var selectedDataItem = lookupTable.get(selected);
+            selectedDataItem = lookupTable.get(selected);
             if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
-                //sceneData.remove(selection);
+                sceneData.remove(selection);
                 selected = null;
             }
         }
@@ -483,14 +485,10 @@ var pca3d = (function (data, config) {
     };
     
     // Draw square for point selection
-    var drawSelection = function(size, width) {
-        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: width});
+    var drawSelection = function() {
+        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2});
         var geometry = new THREE.Geometry();
-        
-        if (selection) {
-            sceneData.remove(selection);
-        }
-                                              
+                                                      
         geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, -0.5));
         geometry.vertices.push(new THREE.Vector3(0.5, -0.5, -0.5));
         
@@ -528,22 +526,6 @@ var pca3d = (function (data, config) {
         geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
         
         selection = new THREE.LineSegments(geometry, material);
-        
-        if (selected) {
-            var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
-            var vFOV = cameraData.fov * Math.PI / 180;
-            var height = 2 * Math.tan(vFOV / 2) * distance;
-        
-            var normalizedSize2 = (height / canvas.width) * 10 * window.devicePixelRatio;
-            var zoomLevel = normalizedSize2;
-            
-            selection.position.set(
-            particles.geometry.vertices[selected].x, 
-            particles.geometry.vertices[selected].y, 
-            particles.geometry.vertices[selected].z);
-            selection.scale.set(zoomLevel, zoomLevel, zoomLevel);
-            sceneData.add(selection);
-        }
     };
 
     // Update normalized mouse coordinates on mouse move event inside canvas
@@ -563,16 +545,25 @@ var pca3d = (function (data, config) {
 
         if ((picked) && (picked != selected)) {
             selected = picked;
-            selection.position.set(
-                particles.geometry.vertices[selected].x, 
-                particles.geometry.vertices[selected].y, 
-                particles.geometry.vertices[selected].z);
             sceneData.add(selection);
-            //console.log(selection);
         } else {
             selected = null;
         }
     };
+    
+    var updateSelection = function() {
+        if (selected) {
+            var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
+            var vFOV = cameraData.fov * Math.PI / 180;
+            var width = 2 * Math.tan(vFOV / 2) * distance;
+            var scale = (width / canvas.width) * 10 * window.devicePixelRatio;
+            selection.scale.set(scale, scale, scale);
+            selection.position.set(
+                particles.geometry.vertices[selected].x, 
+                particles.geometry.vertices[selected].y, 
+                particles.geometry.vertices[selected].z);
+        }
+    }
     
     // Find 3D object under mouse pointer
     var updatePicked = function() {
@@ -658,7 +649,7 @@ var pca3d = (function (data, config) {
         drawData();
         drawGrid();
         drawAxes();  
-        drawSelection(10, 2);
+        drawSelection();
     };
     
     this.initialize = function() {
@@ -672,28 +663,27 @@ var pca3d = (function (data, config) {
         highlightPicked();
         updateTooltip();
 //        updateTickLabels();
-    
-        if (selected) {
-            //var normalizedSize = (dataViewCube.sideSize / canvas.width) * 10 * window.devicePixelRatio;
-            var normalizedSize = 1;
-                    var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
-            var vFOV = cameraData.fov * Math.PI / 180;
-            var height = 2 * Math.tan(vFOV / 2) * distance;
-        
-            var normalizedSize2 = (height / canvas.width) * 10 * window.devicePixelRatio;
-            var zoomLevel = normalizedSize2 / normalizedSize;
-        
-        selection.scale.set(zoomLevel, zoomLevel, zoomLevel);
-        }
+        updateSelection();
         
         renderer.render(sceneData, cameraData);
     };
+    
+    var updateView = function() {
+        calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
+        calculateDataViewCube();
+        
+        cameraData.zoom = 1;
+        cameraData.up.set(0, 1, 0);
+        cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
+        cameraData.updateProjectionMatrix();
+        
+        controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
+    }
     
     this.updateData = function() {
         drawData();
         drawGrid();
         drawAxes();
-        drawSelection(10, 2);
     }
     
     this.draw = function() {
@@ -703,44 +693,17 @@ var pca3d = (function (data, config) {
        
     this.setXCoordinateAttr = function(name) {
         config.xAttribute = name;
-        
-        calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
-        calculateDataViewCube();
-        
-        cameraData.zoom = 1;
-        cameraData.up.set(0, 1, 0);
-        cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
-        cameraData.updateProjectionMatrix();
-        
-        controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
+        updateView();
     };
     
     this.setYCoordinateAttr = function(name) {
         config.yAttribute = name;
-        
-        calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
-        calculateDataViewCube();
-        
-        cameraData.zoom = 1;
-        cameraData.up.set(0, 1, 0);
-        cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
-        cameraData.updateProjectionMatrix();
-        
-        controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
+        updateView();
     };
     
     this.setZCoordinateAttr = function(name) {
         config.zAttribute = name;
-        
-        calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
-        calculateDataViewCube();
-        
-        cameraData.zoom = 1;
-        cameraData.up.set(0, 1, 0);
-        cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
-        cameraData.updateProjectionMatrix();
-        
-        controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
+        updateView();
     };
 
     this.getDataBoundingRectangle = function() {
@@ -776,29 +739,6 @@ var pca3d = (function (data, config) {
                 sceneData.remove(grid);
             }
         }
-    }
-    
-    this.getSelection = function() {
-//        console.log(cameraData);
-//        console.log(controls);
-        //var vFOV = camera.fov * Math.PI / 180;
-        //var height = 2 * Math.tan(vFOV / 2) *
-        
-        //console.log(cameraData.position);
-        //console.log(particles.geometry.vertices[selected]);    
-        //console.log(cameraData.position.distanceTo(particles.geometry.vertices[selected]));
-        
-        var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
-        var vFOV = cameraData.fov * Math.PI / 180;
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        
-        var normalizedSize = (dataViewCube.sideSize / canvas.width) * 10 * window.devicePixelRatio;
-        var normalizedSize2 = (width / canvas.width) * 10 * window.devicePixelRatio;
-        var zoomLevel = normalizedSize / normalizedSize2;
-        
-        console.log(normalizedSize + " " + normalizedSize2 + " " + height + " " + zoomLevel);
-        
-        //return selection;
     }
            
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);

@@ -330,13 +330,14 @@ var pca2d = (function (data, config) {
             vertexColors: THREE.VertexColors
         });
         
-//        material.alphaTest = 0.5;
         material.depthWrite = false;
         
-        if (selected) {         
+        var selectedDataItem = null;
+
+        if (selected) {
             var selectedDataItem = lookupTable.get(selected);
             if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
-                //sceneData.remove(selection);
+                sceneData.remove(selection);
                 selected = null;
             }
         }
@@ -358,14 +359,9 @@ var pca2d = (function (data, config) {
                 j++;
             }
         }
-            
+        
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
-        
-//        if (selected) {
-//            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
-//            sceneData.add(selection);
-//        }
     };
     
     // Draw grid
@@ -396,27 +392,17 @@ var pca2d = (function (data, config) {
     };
     
     // Draw square for point selection
-    var drawSelection = function(size, width) {
-        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: width});
+    var drawSelection = function() {
+        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2});
         var geometry = new THREE.Geometry();
-        var normalizedSize = (dataViewSquare.sideSize / canvas.width) * size * window.devicePixelRatio;
         
-        if (selection) {
-            sceneData.remove(selection);
-        }
-                            
-        geometry.vertices.push(new THREE.Vector3(-normalizedSize / 2, -normalizedSize / 2, 0));
-        geometry.vertices.push(new THREE.Vector3(normalizedSize / 2, -normalizedSize / 2, 0));
-        geometry.vertices.push(new THREE.Vector3(normalizedSize / 2, normalizedSize / 2, 0));
-        geometry.vertices.push(new THREE.Vector3(-normalizedSize / 2, normalizedSize / 2, 0));
-        geometry.vertices.push(new THREE.Vector3(-normalizedSize / 2, -normalizedSize / 2, 0));
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0));
             
         selection = new THREE.Line(geometry, material);
-        
-        if (selected) {
-            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
-            sceneData.add(selection);
-        }
     };
     
     // Update normalized mouse coordinates on mouse move event inside canvas
@@ -436,12 +422,21 @@ var pca2d = (function (data, config) {
 
         if ((picked) && (picked != selected)) {
             selected = picked;
-            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
             sceneData.add(selection);
         } else {
             selected = null;
         }
     };
+    
+    var updateSelection = function() {
+        if (selected) {
+            var normalizedSize = (dataViewSquare.sideSize / canvas.width) * 10 * window.devicePixelRatio;
+            var size = normalizedSize / cameraData.zoom;
+            
+            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+            selection.scale.set(size, size, size);
+        }
+    }
         
     // Find 3D object under mouse pointer
     var updatePicked = function() {
@@ -535,7 +530,7 @@ var pca2d = (function (data, config) {
         drawData();
         drawGrid();
         drawAxes();
-        drawSelection(10, 2);
+        drawSelection();
     };
     
     this.initialize = function() {
@@ -549,8 +544,7 @@ var pca2d = (function (data, config) {
         highlightPicked();
         updateTooltip();
         updateTickLabels();
-        
-        selection.scale.set(1 / cameraData.zoom, 1 / cameraData.zoom, 1);
+        updateSelection();
         
         renderer.clear();
         renderer.render(sceneGrid, cameraGrid);
@@ -560,9 +554,25 @@ var pca2d = (function (data, config) {
         renderer.render(sceneAxes, cameraAxes);
     };
     
+    var updateView = function() {
+        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
+        calculateDataViewSquare();
+        
+        cameraData.zoom = 1;
+        cameraData.left = dataViewSquare.minX;
+        cameraData.right = dataViewSquare.maxX;
+        cameraData.top = dataViewSquare.maxY;
+        cameraData.bottom = dataViewSquare.minY;
+        cameraData.near = 0;
+        cameraData.far = 100;
+        cameraData.position.set(0, 0, 100);
+        cameraData.updateProjectionMatrix();
+        
+        controls.target.set(0, 0, 0);
+    }
+    
     this.updateData = function() {
         drawData();
-        drawSelection(10, 2);
     }
     
     this.draw = function() {
@@ -572,43 +582,13 @@ var pca2d = (function (data, config) {
         
     this.setXCoordinateAttr = function (name) {
         config.xAttribute = name;
-        
-        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
-        calculateDataViewSquare();
-        
-        cameraData.zoom = 1;
-        cameraData.left = dataViewSquare.minX;
-        cameraData.right = dataViewSquare.maxX;
-        cameraData.top = dataViewSquare.maxY;
-        cameraData.bottom = dataViewSquare.minY;
-        cameraData.near = 0;
-        cameraData.far = 100;
-        cameraData.position.set(0, 0, 100);
-        cameraData.updateProjectionMatrix();
-        
-        controls.target.set(0, 0, 0);
-        
+        updateView();
         updateLabel(labelX, name);
     }; 
     
     this.setYCoordinateAttr = function (name) {
         config.yAttribute = name;
-        
-        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
-        calculateDataViewSquare();
-        
-        cameraData.zoom = 1;
-        cameraData.left = dataViewSquare.minX;
-        cameraData.right = dataViewSquare.maxX;
-        cameraData.top = dataViewSquare.maxY;
-        cameraData.bottom = dataViewSquare.minY;
-        cameraData.near = 0;
-        cameraData.far = 100;
-        cameraData.position.set(0, 0, 100);
-        cameraData.updateProjectionMatrix();
-        
-        controls.target.set(0, 0, 0);
-        
+        updateView();
         updateLabel(labelY, name);
     };
     

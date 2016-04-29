@@ -86,11 +86,12 @@
             yAttribute: "PC2",
             zAttribute: "PC3",
             grid: true,
-            groups: new Set()
+            groups: new Set(),
+            selected: null
         };
         
         for (var i = 0; i < legend.length; i++) {
-            config.groups.add(legend[i]["color"]);
+            config.groups.add(legend[i][config.groupAttribute]);
         }
         
         var gl = null;
