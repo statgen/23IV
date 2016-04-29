@@ -455,6 +455,8 @@ var pca3d = (function (data, config) {
             selectedDataItem = lookupTable.get(selected);
             if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
                 sceneData.remove(selection);
+                selectedDataItem = null;
+                config.selected = null;
                 selected = null;
             }
         }
@@ -539,15 +541,16 @@ var pca3d = (function (data, config) {
     
     // On mouse click inside canvas
     var onMouseClickInsideCanvas = function() {
-        if (selected) { 
-            sceneData.remove(selection);
-        }
-
-        if ((picked) && (picked != selected)) {
-            selected = picked;
-            sceneData.add(selection);
-        } else {
-            selected = null;
+        if (picked) {
+            if (picked != selected) {
+                selected = picked;
+                config.selected = lookupTable.get(selected);
+                sceneData.add(selection);
+            } else {
+                sceneData.remove(selection);
+                config.selected = null;
+                selected = null;
+            }
         }
     };
     
@@ -650,6 +653,17 @@ var pca3d = (function (data, config) {
         drawGrid();
         drawAxes();  
         drawSelection();
+        
+        if (config.selected) {
+            // Linear scan until found will be slow for large datasets.
+            for (var [key, value] of lookupTable) {
+                if (value == config.selected) {
+                    sceneData.add(selection);
+                    selected = key;
+                    break;
+                }
+            }
+        }
     };
     
     this.initialize = function() {
