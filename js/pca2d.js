@@ -59,6 +59,7 @@ var pca2d = (function (data, config) {
     var particles = null;
     var grid = null;
     var selection = null;
+    var neighbors = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -341,6 +342,7 @@ var pca2d = (function (data, config) {
                 selectedDataItem = null;
                 config.selected = null;
                 selected = null;
+                config.selectedCallback();
             }
         }
         
@@ -406,6 +408,34 @@ var pca2d = (function (data, config) {
             
         selection = new THREE.Line(geometry, material);
     };
+    
+    // Draw neighbors
+    this.drawNeighbors = function() {
+        if (neighbors) {
+            sceneData.remove(neighbors);
+            neighbors = null;
+        }
+        
+        if ((config.selected) && (config.selectedNeighbors)) {
+            var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
+            var geometry = new THREE.Geometry();
+            
+            var x0 = data[config.selected][config.xAttribute];
+            var y0 = data[config.selected][config.yAttribute];
+            var x = 0;
+            var y = 0;
+            
+            for (var i = 0; i < config.selectedNeighbors.length; i++) {
+                x = data[config.selectedNeighbors[i].index][config.xAttribute];
+                y = data[config.selectedNeighbors[i].index][config.yAttribute];
+                geometry.vertices.push(new THREE.Vector3(x0, y0, 0));
+                geometry.vertices.push(new THREE.Vector3(x, y, 0));
+            }
+            
+            neighbors = new THREE.LineSegments(geometry, material);
+            sceneData.add(neighbors);
+        }
+    }
     
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {

@@ -88,6 +88,8 @@ var pca3d = (function (data, config) {
     var highlighted = null;
     // Currently selected object ID
     var selected = null;
+    // Currently selected neighbors
+    var neighbors = null;
     
     var lookupTable = new Map();
     
@@ -458,6 +460,7 @@ var pca3d = (function (data, config) {
                 selectedDataItem = null;
                 config.selected = null;
                 selected = null;
+                config.selectedCallback();
             }
         }
                     
@@ -529,6 +532,37 @@ var pca3d = (function (data, config) {
         
         selection = new THREE.LineSegments(geometry, material);
     };
+    
+    // Draw neighbors
+    this.drawNeighbors = function() {
+        if (neighbors) {
+            sceneData.remove(neighbors);
+            neighbors = null;
+        }
+        
+        if ((config.selected) && (config.selectedNeighbors)) {
+            var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
+            var geometry = new THREE.Geometry();
+            
+            var x0 = data[config.selected][config.xAttribute];
+            var y0 = data[config.selected][config.yAttribute];
+            var z0 = data[config.selected][config.zAttribute];
+            var x = 0;
+            var y = 0;
+            var z = 0;
+            
+            for (var i = 0; i < config.selectedNeighbors.length; i++) {
+                x = data[config.selectedNeighbors[i].index][config.xAttribute];
+                y = data[config.selectedNeighbors[i].index][config.yAttribute];
+                z = data[config.selectedNeighbors[i].index][config.zAttribute];
+                geometry.vertices.push(new THREE.Vector3(x0, y0, z0));
+                geometry.vertices.push(new THREE.Vector3(x, y, z));
+            }
+            
+            neighbors = new THREE.LineSegments(geometry, material);
+            sceneData.add(neighbors);
+        }
+    }
 
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {

@@ -95,7 +95,8 @@
             grid: true,
             groups: new Set(),
             selected: null,
-            selectedCallback: null
+            selectedCallback: null,
+            selectedNeighbors: null
         };
         
         for (var i = 0; i < legend.length; i++) {
@@ -344,9 +345,42 @@
         config.selectedCallback = function() {
             if (config.selected) {
                 d3.select("#pielabel").text("Selected: " + data[config.selected].name);
+                
+                config.selectedNeighbors = knearest(20);
+                gl.drawNeighbors();
+//                console.log(config.selectedNeighbors);
             } else {
                 d3.select("#pielabel").text("Selected: None");
+                
+                config.selectedNeighbors = null;
             }
+        }
+        
+        function distance(i, j) {
+            var dist = 0;
+            
+            dist += Math.pow(data[i]["PC1"] - data[j]["PC1"], 2);
+            dist += Math.pow(data[i]["PC2"] - data[j]["PC2"], 2);
+            dist += Math.pow(data[i]["PC3"] - data[j]["PC3"], 2);
+            
+            return Math.sqrt(dist);
+        }
+        
+        function knearest(k) {
+            var selected = config.selected;
+            var distances = new Array(data.length);
+            
+//            var startTime = new Date().getTime();
+            for (var i = 0; i < data.length; i++) {
+                distances[i] = { distance: distance(i, config.selected), index: i};
+            }
+            distances.sort(function(f, s) {
+                return f.distance - s.distance;
+            });
+//            var endTime = new Date().getTime();
+//            console.log(endTime - startTime);
+            
+            return distances.slice(1, 1 + k);
         }
         
         gl = new pca2d(data, config);
