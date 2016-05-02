@@ -213,7 +213,7 @@
                 .style("width", "200px")
                 .on("change", function() {
                     d3.select(this.parentElement.nextElementSibling).text(this.value);
-                    callback();
+                    callback(this.value);
                 })
                 .on("input", function() {
                     d3.select(this.parentElement.nextElementSibling).text(this.value);
@@ -329,10 +329,16 @@
             .attr("id", "pielabel")
             .text("Selected: None");
         addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, 1, function() {});
-        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 1, 10, 2, function() {});
+        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 1, data.length, 10, function(value) {
+//                console.log(value);
+                removePieChart();
+                config.selectedNeighbors = knearest(value);
+//                console.log(config.selectedNeighbors);
+                addPieChart(piechartPlotDiv, 80);
+                gl.drawNeighbors();
+        });
         
         //addPieChart(piechartDiv);
-        
         /* END: Piechart */
         
     
@@ -396,10 +402,11 @@
         
         config.selectedCallback = function() {
             if (config.selected) {
-                d3.select("#pielabel").text("Selected: " + data[config.selected].name);
+                var k = parseInt(d3.select("#k").select("input").node().value);
                 
+                d3.select("#pielabel").text("Selected: " + data[config.selected].name);
                 removePieChart();
-                config.selectedNeighbors = knearest(20);
+                config.selectedNeighbors = knearest(k);
                 addPieChart(piechartPlotDiv, 80);
                 gl.drawNeighbors();
             } else {
@@ -424,6 +431,7 @@
         function knearest(k) {
             var selected = config.selected;
             var distances = new Array(data.length);
+            k = parseInt(k);
             
 //            var startTime = new Date().getTime();
             for (var i = 0; i < data.length; i++) {
@@ -433,8 +441,7 @@
                 return f.distance - s.distance;
             });
 //            var endTime = new Date().getTime();
-//            console.log(endTime - startTime);
-            
+//            console.log(endTime - startTime);                        
             return distances.slice(1, 1 + k);
         }
         
