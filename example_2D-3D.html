@@ -328,14 +328,29 @@
         piechartControlsDiv.append("h3")
             .attr("id", "pielabel")
             .text("Selected: None");
-        addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, 1, function() {});
-        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 1, data.length, 10, function(value) {
-//                console.log(value);
-                removePieChart();
-                config.selectedNeighbors = knearest(value);
-//                console.log(config.selectedNeighbors);
+        
+        addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, labels.length, function(value) {
+            var k = parseInt(d3.select("#k").select("input").node().value);
+            removePieChart();
+            if (k > 0) {
+                config.selectedNeighbors = knearest(value, k);
                 addPieChart(piechartPlotDiv, 80);
-                gl.drawNeighbors();
+            } else {
+                config.selectedNeighbors = null;
+            }
+            gl.drawNeighbors();
+        });
+        
+        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 0, data.length, 10, function(value) {
+            var d = parseInt(d3.select("#pc").select("input").node().value);
+            removePieChart();
+            if (value > 0) {
+                config.selectedNeighbors = knearest(d, value);
+                addPieChart(piechartPlotDiv, 80);
+            } else {
+                config.selectedNeighbors = null;
+            }
+            gl.drawNeighbors();
         });
         
         //addPieChart(piechartDiv);
@@ -402,12 +417,19 @@
         
         config.selectedCallback = function() {
             if (config.selected) {
+                var d = parseInt(d3.select("#pc").select("input").node().value);
                 var k = parseInt(d3.select("#k").select("input").node().value);
                 
                 d3.select("#pielabel").text("Selected: " + data[config.selected].name);
+                
                 removePieChart();
-                config.selectedNeighbors = knearest(k);
-                addPieChart(piechartPlotDiv, 80);
+                if (k > 0) {
+                    config.selectedNeighbors = knearest(d, k);
+                    addPieChart(piechartPlotDiv, 80);
+                } else {
+                    config.selectedNeighbors = null;
+                }
+                
                 gl.drawNeighbors();
             } else {
                 d3.select("#pielabel").text("Selected: None");
@@ -418,30 +440,37 @@
             }
         }
         
-        function distance(i, j) {
-            var dist = 0;
+        function distance(d, i, j) {
+            var distance = 0;
+            var attribute = null;
             
-            dist += Math.pow(data[i]["PC1"] - data[j]["PC1"], 2);
-            dist += Math.pow(data[i]["PC2"] - data[j]["PC2"], 2);
-            dist += Math.pow(data[i]["PC3"] - data[j]["PC3"], 2);
+            if (d > labels.length) {
+                d = labels.length;
+            }
             
-            return Math.sqrt(dist);
+            for (var k = 0; k < d; ++k) {
+                attribute = labels[k];
+                distance += Math.pow(data[i][attribute] - data[j][attribute], 2);
+            }
+            
+            return Math.sqrt(distance);
         }
         
-        function knearest(k) {
+        function knearest(d, k) {
             var selected = config.selected;
             var distances = new Array(data.length);
+            
             k = parseInt(k);
             
-//            var startTime = new Date().getTime();
+//          var startTime = new Date().getTime();
             for (var i = 0; i < data.length; i++) {
-                distances[i] = { distance: distance(i, config.selected), index: i};
+                distances[i] = { distance: distance(d, i, config.selected), index: i};
             }
             distances.sort(function(f, s) {
                 return f.distance - s.distance;
             });
-//            var endTime = new Date().getTime();
-//            console.log(endTime - startTime);                        
+//          var endTime = new Date().getTime();
+//          console.log(endTime - startTime);                        
             return distances.slice(1, 1 + k);
         }
         
