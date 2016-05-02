@@ -191,6 +191,10 @@
             });
         }
         
+        function removeAxisControl(id) {
+            d3.select("#" + id).remove();
+        }
+        
         function addSliderControl(parentDiv, id, label, minValue, maxValue, initValue, callback) {
             var dl = parentDiv.append("dl").attr("id", id);
             
@@ -217,10 +221,46 @@
             btnGroup.append("li").text(initValue);
         }
         
-        function removeAxisControl(id) {
-            d3.select("#" + id).remove();
+        function addPieChart(parentDiv, id) {
+            var svg = parentDiv.append("svg")
+                        .attr("id", "piechart_svg")
+                        .attr("width", 100)
+                        .attr("height", 100);
+            
+            var g = svg.append("g")
+                        .attr("transform", "translate(" + 100/2 + ", " + 100/2 + ")");
+            
+            var counts = new Map();
+            for (var i = 0; i < config.selectedNeighbors.length; ++i) {
+                var dataItem = config.selectedNeighbors[i].index;
+                var count = counts.get(data[dataItem][config.colorAttribute]);
+                if (count) {
+                    counts.set(data[dataItem][config.colorAttribute], count + 1);
+                } else {
+                    counts.set(data[dataItem][config.colorAttribute], 1);
+                }
+            }
+                            
+            var pie = d3.layout.pie().value(function(d) {
+                return d[1]; 
+            });
+            
+            var arc = d3.svg.arc().outerRadius(45);
+            
+            var path = g.selectAll('path')
+                .data(pie(Array.from(counts)))
+                .enter()
+                .append('path')
+                .attr('d', arc)
+                .attr('fill', function(d, i) { 
+                    return d.data[0];
+                });
         }
         
+        function removePieChart() {
+            d3.select("#piechart_svg").remove();
+        }
+                
         var plotDiv = d3.select("body").append("div")
             .attr("id", "plot");
         var legendDiv = plotDiv.append("div")
@@ -281,6 +321,9 @@
             .text("Selected: None");
         addSliderControl(piechartDiv, "pc", "Principal components", 1, labels.length, 1, function() {});
         addSliderControl(piechartDiv, "k", "K nearest neighbors", 1, 10, 2, function() {});
+        
+        //addPieChart(piechartDiv);
+        
         /* END: Piechart */
         
     
@@ -348,11 +391,13 @@
                 
                 config.selectedNeighbors = knearest(20);
                 gl.drawNeighbors();
+                addPieChart(piechartDiv);
 //                console.log(config.selectedNeighbors);
             } else {
                 d3.select("#pielabel").text("Selected: None");
                 
                 config.selectedNeighbors = null;
+                removePieChart();
             }
         }
         
