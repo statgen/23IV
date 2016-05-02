@@ -437,6 +437,14 @@ var pca2d = (function (data, config) {
         }
     }
     
+    // Erase neighbors
+    this.eraseNeigbors = function() {
+        if (neighbors) {
+            sceneData.remove(neighbors);
+            neighbors = null;
+        }
+    }
+    
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {
         var boundingClientRect = canvas.getBoundingClientRect();
@@ -576,13 +584,14 @@ var pca2d = (function (data, config) {
                 }
             }
         }
-
     };
     
     this.initialize = function() {
         initializeGL();
         initializeControls();
         initializeScene();
+        
+        this.drawNeighbors();
     };
     
     var render = function() {
@@ -630,12 +639,14 @@ var pca2d = (function (data, config) {
         config.xAttribute = name;
         updateView();
         updateLabel(labelX, name);
+        this.drawNeighbors();
     }; 
     
     this.setYCoordinateAttr = function (name) {
         config.yAttribute = name;
         updateView();
         updateLabel(labelY, name);
+        this.drawNeighbors();
     };
     
     this.deactivate = function() {

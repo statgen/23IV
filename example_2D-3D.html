@@ -33,8 +33,9 @@
             width: 800px;
             height: 200px;
             top: 500px;
+            right: 0px;
         }
-
+        
         #pca_canvas {
             background-color: #ffffff;
             border: 1px solid #ffffff;
@@ -221,14 +222,14 @@
             btnGroup.append("li").text(initValue);
         }
         
-        function addPieChart(parentDiv, id) {
+        function addPieChart(parentDiv, radius) {
             var svg = parentDiv.append("svg")
                         .attr("id", "piechart_svg")
-                        .attr("width", 100)
-                        .attr("height", 100);
+                        .attr("width", radius * 2)
+                        .attr("height", radius * 2);
             
             var g = svg.append("g")
-                        .attr("transform", "translate(" + 100/2 + ", " + 100/2 + ")");
+                        .attr("transform", "translate(" + radius + ", " + radius + ")");
             
             var counts = new Map();
             for (var i = 0; i < config.selectedNeighbors.length; ++i) {
@@ -245,7 +246,8 @@
                 return d[1]; 
             });
             
-            var arc = d3.svg.arc().outerRadius(45);
+            var arc = d3.svg.arc().outerRadius(radius);
+                //.innerRadius(radius / 1.5);
             
             var path = g.selectAll('path')
                 .data(pie(Array.from(counts)))
@@ -269,6 +271,13 @@
             .attr("id", "controls");
         var piechartDiv = plotDiv.append("div")
             .attr("id", "piechart");
+        var piechartControlsDiv = piechartDiv.append("div")
+            .style("position", "absolute")
+            .style("width", "500px")
+            .style("left", "0px");
+        var piechartPlotDiv = piechartDiv.append("div")
+            .style("position", "absolute")
+            .style("left", "500px");
 
         var canvas = plotDiv.append("canvas")
             .attr("id", "pca_canvas")
@@ -316,11 +325,11 @@
         /* BEGIN: End */
         
         /* BEGIN: Piechart */
-        piechartDiv.append("h3")
+        piechartControlsDiv.append("h3")
             .attr("id", "pielabel")
             .text("Selected: None");
-        addSliderControl(piechartDiv, "pc", "Principal components", 1, labels.length, 1, function() {});
-        addSliderControl(piechartDiv, "k", "K nearest neighbors", 1, 10, 2, function() {});
+        addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, 1, function() {});
+        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 1, 10, 2, function() {});
         
         //addPieChart(piechartDiv);
         
@@ -389,15 +398,16 @@
             if (config.selected) {
                 d3.select("#pielabel").text("Selected: " + data[config.selected].name);
                 
+                removePieChart();
                 config.selectedNeighbors = knearest(20);
+                addPieChart(piechartPlotDiv, 80);
                 gl.drawNeighbors();
-                addPieChart(piechartDiv);
-//                console.log(config.selectedNeighbors);
             } else {
                 d3.select("#pielabel").text("Selected: None");
                 
                 config.selectedNeighbors = null;
                 removePieChart();
+                gl.eraseNeigbors();
             }
         }
         

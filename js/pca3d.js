@@ -705,6 +705,8 @@ var pca3d = (function (data, config) {
         initializeGL();
         initializeControls();
         initializeScene();
+        
+        this.drawNeighbors();
     };
     
     var render = function() {
@@ -743,16 +745,19 @@ var pca3d = (function (data, config) {
     this.setXCoordinateAttr = function(name) {
         config.xAttribute = name;
         updateView();
+        this.drawNeighbors();
     };
     
     this.setYCoordinateAttr = function(name) {
         config.yAttribute = name;
         updateView();
+        this.drawNeighbors();
     };
     
     this.setZCoordinateAttr = function(name) {
         config.zAttribute = name;
         updateView();
+        this.drawNeighbors();
     };
 
     this.getDataBoundingRectangle = function() {
