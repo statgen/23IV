@@ -473,27 +473,29 @@ var pca3d = (function (model, config) {
     };
     
     // Draw neighbors
-    this.drawNeighbors = function() {
+    var drawNeighbors = function() {
         if (neighbors) {
             sceneData.remove(neighbors);
             neighbors = null;
         }
         
-        if ((config.selected) && (config.selectedNeighbors)) {
+        if (model.nearestNeighbors.length > 0) {
+            var selected = model.getSelectedActiveElement();
+            
             var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
             var geometry = new THREE.Geometry();
             
-            var x0 = data[config.selected][config.xAttribute];
-            var y0 = data[config.selected][config.yAttribute];
-            var z0 = data[config.selected][config.zAttribute];
+            var x0 = particles.geometry.vertices[selected].x;
+            var y0 = particles.geometry.vertices[selected].y;
+            var z0 = particles.geometry.vertices[selected].z;
             var x = 0;
             var y = 0;
             var z = 0;
             
-            for (var i = 0; i < config.selectedNeighbors.length; i++) {
-                x = data[config.selectedNeighbors[i].index][config.xAttribute];
-                y = data[config.selectedNeighbors[i].index][config.yAttribute];
-                z = data[config.selectedNeighbors[i].index][config.zAttribute];
+            for (var i = 0; i < model.nearestNeighbors.length; i++) {
+                x = particles.geometry.vertices[model.nearestNeighbors[i]].x;
+                y = particles.geometry.vertices[model.nearestNeighbors[i]].y;
+                z = particles.geometry.vertices[model.nearestNeighbors[i]].z;
                 geometry.vertices.push(new THREE.Vector3(x0, y0, z0));
                 geometry.vertices.push(new THREE.Vector3(x, y, z));
             }
@@ -630,6 +632,7 @@ var pca3d = (function (model, config) {
         if (selected) {
             changeSelection(selected);
             sceneData.add(selection);
+            drawNeighbors();
         }
     };
     
@@ -637,8 +640,6 @@ var pca3d = (function (model, config) {
         initializeGL();
         initializeControls();
         initializeScene();
-        
-//        this.drawNeighbors();
     };
     
     var render = function() {
@@ -668,6 +669,7 @@ var pca3d = (function (model, config) {
         var selected = model.getSelectedActiveElement();
         if (selected) {
             changeSelection(selected);
+            drawNeighbors();
         }
     }
     
@@ -679,19 +681,16 @@ var pca3d = (function (model, config) {
     this.setXCoordinateAttr = function(name) {
         config.xAttribute = name;
         updateView();
-//        this.drawNeighbors();
     };
     
     this.setYCoordinateAttr = function(name) {
         config.yAttribute = name;
         updateView();
-//        this.drawNeighbors();
     };
     
     this.setZCoordinateAttr = function(name) {
         config.zAttribute = name;
         updateView();
-//        this.drawNeighbors();
     };
 
     this.getDataBoundingRectangle = function() {
@@ -733,7 +732,7 @@ var pca3d = (function (model, config) {
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
     calculateDataViewCube();
 
-    model.addListener("pca3d", function(dataChanged, selectionChanged) {
+    model.addListener("pca3d", function(dataChanged, selectionChanged, neighborsChanged) {
         if (dataChanged) {
             drawData();
             drawGrid();
@@ -747,6 +746,10 @@ var pca3d = (function (model, config) {
                 changeSelection(selected);
                 sceneData.add(selection);
             }
+        }
+        
+        if (neighborsChanged) {
+            drawNeighbors();
         }
     });
 });

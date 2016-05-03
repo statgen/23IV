@@ -385,38 +385,32 @@ var pca2d = (function (model, config) {
     };
     
     // Draw neighbors
-    this.drawNeighbors = function() {
+    var drawNeighbors = function() {
         if (neighbors) {
             sceneData.remove(neighbors);
             neighbors = null;
         }
         
-        if ((config.selected) && (config.selectedNeighbors)) {
+        if (model.nearestNeighbors.length > 0) {
+            var selected = model.getSelectedActiveElement();
+
             var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
             var geometry = new THREE.Geometry();
             
-            var x0 = model.data[config.selected][config.xAttribute];
-            var y0 = model.data[config.selected][config.yAttribute];
+            var x0 = particles.geometry.vertices[selected].x;
+            var y0 = particles.geometry.vertices[selected].y;
             var x = 0;
             var y = 0;
             
-            for (var i = 0; i < config.selectedNeighbors.length; i++) {
-                x = model.data[config.selectedNeighbors[i].index][config.xAttribute];
-                y = model.data[config.selectedNeighbors[i].index][config.yAttribute];
+            for (var i = 0; i < model.nearestNeighbors.length; i++) {
+                x = particles.geometry.vertices[model.nearestNeighbors[i]].x;
+                y = particles.geometry.vertices[model.nearestNeighbors[i]].y;
                 geometry.vertices.push(new THREE.Vector3(x0, y0, 0));
                 geometry.vertices.push(new THREE.Vector3(x, y, 0));
             }
             
             neighbors = new THREE.LineSegments(geometry, material);
             sceneData.add(neighbors);
-        }
-    }
-    
-    // Erase neighbors
-    this.eraseNeigbors = function() {
-        if (neighbors) {
-            sceneData.remove(neighbors);
-            neighbors = null;
         }
     }
     
@@ -553,6 +547,7 @@ var pca2d = (function (model, config) {
         if (selected) {
             changeSelection(selected);
             sceneData.add(selection);
+            drawNeighbors();
         }
     };
     
@@ -560,7 +555,6 @@ var pca2d = (function (model, config) {
         initializeGL();
         initializeControls();
         initializeScene();
-      //  this.drawNeighbors();
     };
     
     var render = function() {
@@ -599,6 +593,7 @@ var pca2d = (function (model, config) {
         var selected = model.getSelectedActiveElement();
         if (selected) {
             changeSelection(selected);
+            drawNeighbors();
         }
     }
     
@@ -611,16 +606,12 @@ var pca2d = (function (model, config) {
         config.xAttribute = name;
         updateView();
         updateLabel(labelX, name);
-        
-//        this.drawNeighbors();
     }; 
     
     this.setYCoordinateAttr = function (name) {
         config.yAttribute = name;
         updateView();
         updateLabel(labelY, name);
-        
-//        this.drawNeighbors();
     };
     
     this.deactivate = function() {
@@ -654,7 +645,7 @@ var pca2d = (function (model, config) {
     calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
     calculateDataViewSquare();
     
-    model.addListener("pca2d", function(dataChanged, selectionChanged) {
+    model.addListener("pca2d", function(dataChanged, selectionChanged, neighborsChanged) {
         if (dataChanged) {
             drawData();
         }
@@ -666,6 +657,10 @@ var pca2d = (function (model, config) {
                 changeSelection(selected);
                 sceneData.add(selection);
             }
+        }
+        
+        if (neighborsChanged) {
+            drawNeighbors();
         }
     });
 });

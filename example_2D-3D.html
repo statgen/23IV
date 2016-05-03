@@ -96,8 +96,7 @@
             xAttribute: "PC1",
             yAttribute: "PC2",
             zAttribute: "PC3",
-            grid: true,
-            selectedNeighbors: null
+            grid: true
         };
         
         var gl = null;
@@ -321,34 +320,15 @@
             .attr("id", "pielabel")
             .text("Selected: None");
         
-        addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, labels.length, function(value) {
-            var k = parseInt(d3.select("#k").select("input").node().value);
-            removePieChart();
-            if (k > 0) {
-                config.selectedNeighbors = knearest(value, k);
-                addPieChart(piechartPlotDiv, 80);
-            } else {
-                config.selectedNeighbors = null;
-            }
-            gl.drawNeighbors();
+        addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, model.getMaxDimensions(), function(value) {
+            model.setMaxDimensions(value);
         });
         
-        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 0, model.activeElements.length, 10, function(value) {
-            var d = parseInt(d3.select("#pc").select("input").node().value);
-            removePieChart();
-            if (value > 0) {
-                config.selectedNeighbors = knearest(d, value);
-                addPieChart(piechartPlotDiv, 80);
-            } else {
-                config.selectedNeighbors = null;
-            }
-            gl.drawNeighbors();
+        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 0, model.activeElements.length, model.nearestNeighbors.length, function(value) {
+            model.setKNearestNeighbors(value);
         });
-        
-        //addPieChart(piechartDiv);
         /* END: Piechart */
         
-    
         /* BEGIN:  Legend */
         btnGroup = legendDiv.append("div")
             .attr("class", "btn-group-vertical")
@@ -380,37 +360,9 @@
                 if (model.isGroupActive(d["color"])) {
                     d3.select(this).select("circle").style("fill", "ffffff");
                     model.deactivateGroup(d["color"]);
-                    
-//                    if (config.selectedNeighbors) {
-//                        var d = parseInt(d3.select("#pc").select("input").node().value);
-//                        var k = parseInt(d3.select("#k").select("input").node().value);
-//                        
-//                        removePieChart();
-//                        if (k > 0) {
-//                            config.selectedNeighbors = knearest(d, k);
-//                            addPieChart(piechartPlotDiv, 80);
-//                        } else {
-//                            config.selectedNeighbors = null;
-//                        }
-//                        gl.drawNeighbors();
-//                    }
                 } else {
                     d3.select(this).select("circle").style("fill", d["color"]);
                     model.activateGroup(d["color"]);
-                    
-//                    if (config.selectedNeighbors) {
-//                        var d = parseInt(d3.select("#pc").select("input").node().value);
-//                        var k = parseInt(d3.select("#k").select("input").node().value);
-//                        
-//                        removePieChart();
-//                        if (k > 0) {
-//                            config.selectedNeighbors = knearest(d, k);
-//                            addPieChart(piechartPlotDiv, 80);
-//                        } else {
-//                            config.selectedNeighbors = null;
-//                        }
-//                        gl.drawNeighbors();
-//                    }
                 }            
             });
             
@@ -432,64 +384,27 @@
             gl.initialize();
         }
         
-        config.selectedCallback = function() {
-            if (config.selected) {
-                var d = parseInt(d3.select("#pc").select("input").node().value);
-                var k = parseInt(d3.select("#k").select("input").node().value);
-                
-                d3.select("#pielabel").text("Selected: " + model.data[config.selected].name);
-                
-                removePieChart();
-                if (k > 0) {
-                    config.selectedNeighbors = knearest(d, k);
-                    addPieChart(piechartPlotDiv, 80);
+        model.addListener("piechart", function(dataChanged, selectionChanged) {
+            if (selectionChanged) {
+                var selected = model.getSelectedElement();
+                if (selected) {
+                    d3.select("#pielabel").text(model.data[selected].name);
+                    
+//                    var d = parseInt(d3.select("#pc").select("input").node().value);
+  //                  var k = parseInt(d3.select("#k").select("input").node().value);
+                    
+    //                if (k > 0) {
+                        //config.selectedNeighbors = knearest(d, k);
+//                        addPieChart(piechartPlotDiv, 80);
+      //              } else {
+        //                config.selectedNeighbors = null;
+          //          }
                 } else {
-                    config.selectedNeighbors = null;
-                }
-                
-                gl.drawNeighbors();
-            } else {
-                d3.select("#pielabel").text("Selected: None");
-                
-                config.selectedNeighbors = null;
-                removePieChart();
-                gl.eraseNeigbors();
-            }
-        }
-        
-        function distance(d, i, j) {
-            var distance = 0;
-            var attribute = null;
-            
-            if (d > labels.length) {
-                d = labels.length;
-            }
-            
-            for (var k = 0; k < d; ++k) {
-                attribute = labels[k];
-                distance += Math.pow(model.data[i][attribute] - model.data[j][attribute], 2);
-            }
-            
-            return Math.sqrt(distance);
-        }
-        
-        function knearest(d, k) {
-            var selected = config.selected;
-            var distances = new Array(model.data.length);
-            
-//          var startTime = new Date().getTime();
-            for (var i = 0; i < model.data.length; i++) {
-                if ((model.data[i].color != "#000000") && (model.isGroupActive(model.data[i][config.groupAttribute]))) {
-                    distances[i] = { distance: distance(d, i, config.selected), index: i};
+                    d3.select("#pielabel").text("Selected: None");
+            //        removePieChart();
                 }
             }
-            distances.sort(function(f, s) {
-                return f.distance - s.distance;
-            });
-//          var endTime = new Date().getTime();
-//          console.log(endTime - startTime);                        
-            return distances.slice(1, 1 + parseInt(k));
-        }
+        });
         
         gl = new pca2d(model, config);
         gl.initialize();

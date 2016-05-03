@@ -1,21 +1,28 @@
 var DataModel = (function (data, dimensionNames, groups) {
     this.data = data;
+    this.dimensionNames = dimensionNames;
+    this.groups = groups;
     
     this.activeGroups = {};
     this.inactiveGroups = {};
     this.activeElements = [];
     
     var selectedActiveElement = null;
+    this.nearestNeighbors = [];
+    
+    var maxDimensions = dimensionNames.length;
+    var kNearestNeighbors = 0;
+    var sortedNeighbors = null;
     
     var listeners = {};
     
-    for (var i = 0; i < groups.length; i++) {
-        this.activeGroups[groups[i]["color"]] = [];
+    for (var i = 0; i < this.groups.length; i++) {
+        this.activeGroups[this.groups[i]["color"]] = [];
     }
     
-    for (var i = 0; i < data.length; i++) {
+    for (var i = 0; i < this.data.length; i++) {
         this.activeElements.push(i);
-        this.activeGroups[data[i]["color"]].push(i);
+        this.activeGroups[this.data[i]["color"]].push(i);
     }
     
     this.addListener = function(name, callback) {
@@ -28,9 +35,9 @@ var DataModel = (function (data, dimensionNames, groups) {
         }
     }
     
-    var notifyListeners = function(dataChanged, selectionChanged) {
+    var notifyListeners = function(dataChanged, selectionChanged, neighborsChanged) {
         for (var listener in listeners) {
-            listeners[listener](dataChanged, selectionChanged);
+            listeners[listener](dataChanged, selectionChanged, neighborsChanged);
         }
     }
     
@@ -40,7 +47,16 @@ var DataModel = (function (data, dimensionNames, groups) {
     
     this.selectActiveElement = function(activeElement) {
         selectedActiveElement = activeElement;
-        notifyListeners(false, true);
+        
+        if (selectedActiveElement) {
+            sortNeighbors(this);
+            this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+        } else {
+            sortedNeighbors = null;
+            this.nearestNeighbors = [];
+        }
+        
+        notifyListeners(false, true, true);
     }
     
     this.getSelectedActiveElement = function() {
@@ -61,6 +77,7 @@ var DataModel = (function (data, dimensionNames, groups) {
             if (selectedElement) {
                 if (this.data[selectedElement]["color"] == name) {
                     selectedActiveElement = null;
+                    this.nearestNeighbors = [];
                 }
             }
             
@@ -82,8 +99,13 @@ var DataModel = (function (data, dimensionNames, groups) {
                 }, 
                 this
             );
+            
+            if (selectedActiveElement) {
+                sortNeighbors(this);
+                this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+            }
                         
-            notifyListeners(true, true);
+            notifyListeners(true, true, true);
         }    
     }
     
@@ -93,12 +115,93 @@ var DataModel = (function (data, dimensionNames, groups) {
             delete this.inactiveGroups[name];
             Array.prototype.push.apply(this.activeElements, this.activeGroups[name]);
             
-            notifyListeners(true, false);
+            if (selectedActiveElement) {
+                sortNeighbors(this);
+                this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+            }
+            
+            notifyListeners(true, false, true);
         }
     }
     
     this.isGroupActive = function(name) {
         return this.activeGroups.hasOwnProperty(name);
+    }
+    
+    this.setMaxDimensions = function(dimensions) {
+        dimensions = parseInt(dimensions);
+        
+        if (dimensions < 1) {
+            maxDimensions = 1;
+        } else if (dimensions > dimensionNames.length) {
+            maxDimensions = dimensionNames.length;
+        } else {
+            maxDimensions = dimensions;
+        }
+        
+        if (selectedActiveElement) {
+            sortNeighbors(this);
+            this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+            notifyListeners(false, false, true);
+        }
+    }
+    
+    this.getMaxDimensions = function() {
+        return maxDimensions;
+    }
+    
+    this.setKNearestNeighbors = function(k) {
+        k = parseInt(k);
+        
+        if (k < 0) {
+            k = 0;
+        } else if (k > this.activeElements.length) {
+            kNearestNeighbors = this.activeElements.length;
+        } else {
+            kNearestNeighbors = k;
+        }
+        
+        if (selectedActiveElement) {
+            this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+        }
+        
+        notifyListeners(false, false, true);
+    }
+        
+    this.distance = function(element1, element2) {
+        var distance = 0;
+        var dimension = null;
+            
+        for (var d = 0; d < maxDimensions; d++) {
+            dimensionName = dimensionNames[d];
+            distance += Math.pow(this.data[element1][dimensionName] - this.data[element2][dimensionName], 2);
+        }
+            
+        return Math.sqrt(distance);
+    }
+    
+    var sortNeighbors = function(thisArg) {
+        var element = null;
+        var selectedElement = thisArg.getSelectedElement();
+        
+        sortedNeighbors = new Array(thisArg.activeElements.length);
+            
+        for (var i = 0; i < thisArg.activeElements.length; ++i) {
+            element = thisArg.activeElements[i];
+            if (model.data[element] != "#000000") {
+                sortedNeighbors[i] = { distance: thisArg.distance(element, selectedElement), index: i};
+            }
+        }
+        sortedNeighbors.sort(function(f, s) {
+            return f.distance - s.distance;
+        });
+        
+        sortedNeighbors = sortedNeighbors.map(
+            function(value, index, array) {
+                return value.index;
+            }, 
+            this
+        );
     }
     
 });
