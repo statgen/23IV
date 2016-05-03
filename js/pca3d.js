@@ -33,25 +33,6 @@ var pca3d = (function (model, config) {
         centerZ: Number.MAX_VALUE,
         sideSize: 0
     };
-    
-// Bounding square for fixed view of X and Y axes on top of data view.
-//    var axesViewSquare = {
-//        minX: -50,
-//        maxX: 50,
-//        minY: -50,
-//        maxY: 50,
-//        sideSize: 100,
-//        tickSize: 1,
-//        margin: 10,
-//        xAxis: {
-//            start: {x: -40, y: -40},
-//            end: {x: 40, y: -40}
-//        },
-//        yAxis: {
-//            start: {x: -40, y: -40},
-//            end: {x: -40, y: 40}
-//        }
-//    }
         
     var sceneData = null;
     var cameraData = null;
@@ -86,12 +67,8 @@ var pca3d = (function (model, config) {
     var tooltip = null;
     // Currently highlighted object ID
     var highlighted = null;
-    // Currently selected object ID
-    var selected = null;
     // Currently selected neighbors
     var neighbors = null;
-    
-    var lookupTable = new Map();
     
     var sphere = new THREE.TextureLoader().load("textures/sphere.png");
     
@@ -245,20 +222,6 @@ var pca3d = (function (model, config) {
         label.context.fillText(text, label.cx - tx, label.cy + ty);
         label.sprite.material.map.needsUpdate = true;
     };
-    
-    // Get X axis tick label at tick_position
-//    var getTickXLabel = function(tick_position, data_view_minX, data_view_maxX) {
-//        var unit = (data_view_maxX - data_view_minX) / axesViewSquare.sideSize;
-//        var  label = data_view_minX + unit * (tick_position - axesViewSquare.minX);
-//        return label.toFixed(2);
-//    };
-    
-    // Get Y axis tick label at tick_position
-//    var getTickYLabel = function(tick_position, data_view_minY, data_view_maxY) {
-//        var unit = (data_view_maxY - data_view_minY) / axesViewSquare.sideSize;
-//        var label = data_view_minY + unit * (tick_position - axesViewSquare.minY);
-//        return label.toFixed(2);
-//    };
         
     // Draw axes.
     function drawAxes() {
@@ -451,22 +414,6 @@ var pca3d = (function (model, config) {
         
         material.alphaTest = 0.5;
         
-        var selectedDataItem = null;
-        
-        if (selected) {         
-            selectedDataItem = lookupTable.get(selected);
-            if (model.isGroupActive(config.groupAttribute)) {
-//            if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
-                sceneData.remove(selection);
-                selectedDataItem = null;
-                config.selected = null;
-                selected = null;
-                config.selectedCallback();
-            }
-        }
-                    
-        lookupTable.clear();
-          
         if (particles) {
             sceneData.remove(particles);
         }
@@ -475,27 +422,8 @@ var pca3d = (function (model, config) {
             var i = model.activeElements[j];
             geometry.vertices.push(new THREE.Vector3(model.data[i][config.xAttribute], model.data[i][config.yAttribute], model.data[i][config.zAttribute]));
             geometry.colors.push(new THREE.Color(model.data[i][config.colorAttribute]));
-            lookupTable.set(j, i);
-            if (i == selectedDataItem) {
-                selected = j;
-            }
         }
         
-//        for (var i = 0, j = 0; i < data.length; i++) {
-//            if (config.groups.has(data[i][config.groupAttribute])) {
-//                geometry.vertices.push(new THREE.Vector3(
-//                    data[i][config.xAttribute], 
-//                    data[i][config.yAttribute], 
-//                    data[i][config.zAttribute]));
-//                geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
-//                lookupTable.set(j, i);
-//                if (i == selectedDataItem) {
-//                    selected = j;
-//                }
-//                j++;
-//            }
-//        }
-                
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
     };
@@ -587,31 +515,27 @@ var pca3d = (function (model, config) {
     // On mouse click inside canvas
     var onMouseClickInsideCanvas = function() {
         if (picked) {
+            var selected = model.getSelectedActiveElement();
             if (picked != selected) {
-                selected = picked;
-                config.selected = lookupTable.get(selected);
-                sceneData.add(selection);
+                model.selectActiveElement(picked);
             } else {
-                sceneData.remove(selection);
-                config.selected = null;
-                selected = null;
+                model.selectActiveElement(null);
             }
-            config.selectedCallback();
         }
     };
     
-    var updateSelection = function() {
-        if (selected) {
-            var distance = cameraData.position.distanceTo(particles.geometry.vertices[selected]);
-            var vFOV = cameraData.fov * Math.PI / 180;
-            var width = 2 * Math.tan(vFOV / 2) * distance;
-            var scale = (width / canvas.width) * 10 * window.devicePixelRatio;
-            selection.scale.set(scale, scale, scale);
-            selection.position.set(
-                particles.geometry.vertices[selected].x, 
-                particles.geometry.vertices[selected].y, 
-                particles.geometry.vertices[selected].z);
-        }
+    // Change selected object
+    var changeSelection = function(selected) {
+        selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, particles.geometry.vertices[selected].z);
+    }
+    
+    // Rescale selection shape
+    var rescaleSelection = function() {
+        var distance = cameraData.position.distanceTo(selection.position);
+        var vFOV = cameraData.fov * Math.PI / 180;
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var scale = (width / canvas.width) * 10 * window.devicePixelRatio;
+        selection.scale.set(scale, scale, scale);
     }
     
     // Find 3D object under mouse pointer
@@ -629,7 +553,7 @@ var pca3d = (function (model, config) {
     var highlightPicked = function() {
         if (picked != highlighted) {
             if (highlighted != null) {
-                particles.geometry.colors[highlighted] = new THREE.Color(model.data[lookupTable.get(highlighted)][config.colorAttribute]);
+                particles.geometry.colors[highlighted] = new THREE.Color(model.data[model.getElement(highlighted)][config.colorAttribute]);
             }
             if (picked != null) {
                 particles.geometry.colors[picked] = new THREE.Color(0xff00ff);
@@ -644,15 +568,17 @@ var pca3d = (function (model, config) {
         if (picked != tooltip) {
             d3.select("#tooltip").remove();
             if (picked != null) {
+                var element = model.getElement(picked);
+                
                 var coordinate = mouse;
                 d3.select("body").append("div")
                     .attr("id", "tooltip")
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
-                    .html(model.data[lookupTable.get(picked)][config.nameAttribute] + 
-                          "</br>" + config.xAttribute + "=" + model.data[lookupTable.get(picked)][config.xAttribute] + 
-                          "</br>" + config.yAttribute + "=" + model.data[lookupTable.get(picked)][config.yAttribute] + 
-                          "</br>" + config.zAttribute + "=" + model.data[lookupTable.get(picked)][config.zAttribute]);
+                    .html(model.data[element][config.nameAttribute] + 
+                          "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] + 
+                          "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute] + 
+                          "</br>" + config.zAttribute + "=" + model.data[element][config.zAttribute]);
             }
             tooltip = picked;
         }
@@ -699,16 +625,11 @@ var pca3d = (function (model, config) {
         drawGrid();
         drawAxes();  
         drawSelection();
-        
-        if (config.selected) {
-            // Linear scan until found will be slow for large datasets.
-            for (var [key, value] of lookupTable) {
-                if (value == config.selected) {
-                    sceneData.add(selection);
-                    selected = key;
-                    break;
-                }
-            }
+
+        var selected = model.getSelectedActiveElement();
+        if (selected) {
+            changeSelection(selected);
+            sceneData.add(selection);
         }
     };
     
@@ -717,15 +638,14 @@ var pca3d = (function (model, config) {
         initializeControls();
         initializeScene();
         
-        this.drawNeighbors();
+//        this.drawNeighbors();
     };
     
     var render = function() {
         updatePicked();
         highlightPicked();
         updateTooltip();
-//        updateTickLabels();
-        updateSelection();
+        rescaleSelection();
         
         renderer.render(sceneData, cameraData);
     };
@@ -740,12 +660,15 @@ var pca3d = (function (model, config) {
         cameraData.updateProjectionMatrix();
         
         controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
-    }
-    
-    this.updateData = function() {
+        
         drawData();
         drawGrid();
         drawAxes();
+        
+        var selected = model.getSelectedActiveElement();
+        if (selected) {
+            changeSelection(selected);
+        }
     }
     
     this.draw = function() {
@@ -756,19 +679,19 @@ var pca3d = (function (model, config) {
     this.setXCoordinateAttr = function(name) {
         config.xAttribute = name;
         updateView();
-        this.drawNeighbors();
+//        this.drawNeighbors();
     };
     
     this.setYCoordinateAttr = function(name) {
         config.yAttribute = name;
         updateView();
-        this.drawNeighbors();
+//        this.drawNeighbors();
     };
     
     this.setZCoordinateAttr = function(name) {
         config.zAttribute = name;
         updateView();
-        this.drawNeighbors();
+//        this.drawNeighbors();
     };
 
     this.getDataBoundingRectangle = function() {
@@ -780,6 +703,7 @@ var pca3d = (function (model, config) {
     };
     
     this.deactivate = function() {
+        model.removeListener("pca3d");
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
         d3.select(config.canvasId).on("click", null);
@@ -809,4 +733,20 @@ var pca3d = (function (model, config) {
     calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
     calculateDataViewCube();
 
+    model.addListener("pca3d", function(dataChanged, selectionChanged) {
+        if (dataChanged) {
+            drawData();
+            drawGrid();
+            drawAxes();
+        }
+        
+        if (selectionChanged) {
+            var selected = model.getSelectedActiveElement();
+            sceneData.remove(selection);   
+            if (selected) {
+                changeSelection(selected);
+                sceneData.add(selection);
+            }
+        }
+    });
 });

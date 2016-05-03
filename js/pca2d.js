@@ -80,10 +80,6 @@ var pca2d = (function (model, config) {
     var tooltip = null;
     // Currently highlighted object ID
     var highlighted = null;
-    // Currently selected object ID
-    var selected = null;
-    
-    var lookupTable = new Map();
     
     var circle = new THREE.TextureLoader().load("textures/circle.png");
                 
@@ -332,22 +328,6 @@ var pca2d = (function (model, config) {
         });
         
         material.depthWrite = false;
-        
-        var selectedDataItem = null;
-
-        if (selected) {
-            selectedDataItem = lookupTable.get(selected);
-            if (model.isGroupActive(config.groupAttribute)) {
-//            if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
-                sceneData.remove(selection);
-                selectedDataItem = null;
-                config.selected = null;
-                selected = null;
-                config.selectedCallback();
-            }
-        }
-        
-        lookupTable.clear();
           
         if (particles) {
             sceneData.remove(particles);
@@ -357,22 +337,7 @@ var pca2d = (function (model, config) {
             var i = model.activeElements[j];
             geometry.vertices.push(new THREE.Vector3(model.data[i][config.xAttribute], model.data[i][config.yAttribute], 0));
             geometry.colors.push(new THREE.Color(model.data[i][config.colorAttribute]));
-            lookupTable.set(j, i);
-            if (i == selectedDataItem) {
-                selected = j;
-            }
         }
-//        for (var i = 0, j = 0; i < data.length; i++) {
-//            if (config.groups.has(data[i][config.groupAttribute])) {
-//                geometry.vertices.push(new THREE.Vector3(data[i][config.xAttribute], data[i][config.yAttribute], 0));
-//                geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
-//                lookupTable.set(j, i);
-//                if (i == selectedDataItem) {
-//                    selected = j;
-//                }
-//                j++;
-//            }
-//        }
         
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
@@ -430,14 +395,14 @@ var pca2d = (function (model, config) {
             var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
             var geometry = new THREE.Geometry();
             
-            var x0 = data[config.selected][config.xAttribute];
-            var y0 = data[config.selected][config.yAttribute];
+            var x0 = model.data[config.selected][config.xAttribute];
+            var y0 = model.data[config.selected][config.yAttribute];
             var x = 0;
             var y = 0;
             
             for (var i = 0; i < config.selectedNeighbors.length; i++) {
-                x = data[config.selectedNeighbors[i].index][config.xAttribute];
-                y = data[config.selectedNeighbors[i].index][config.yAttribute];
+                x = model.data[config.selectedNeighbors[i].index][config.xAttribute];
+                y = model.data[config.selectedNeighbors[i].index][config.yAttribute];
                 geometry.vertices.push(new THREE.Vector3(x0, y0, 0));
                 geometry.vertices.push(new THREE.Vector3(x, y, 0));
             }
@@ -467,27 +432,25 @@ var pca2d = (function (model, config) {
     // On mouse click inside canvas
     var onMouseClickInsideCanvas = function() {
         if (picked) {
+            var selected = model.getSelectedActiveElement();
             if (picked != selected) {
-                selected = picked;
-                config.selected = lookupTable.get(selected);
-                sceneData.add(selection);
+                model.selectActiveElement(picked);
             } else {
-                sceneData.remove(selection);
-                config.selected = null;
-                selected = null;
+                model.selectActiveElement(null);
             }
-            config.selectedCallback();
         }
     };
     
-    var updateSelection = function() {
-        if (selected) {
-            var normalizedSize = (dataViewSquare.sideSize / canvas.width) * 10 * window.devicePixelRatio;
-            var size = normalizedSize / cameraData.zoom;
-            
-            selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
-            selection.scale.set(size, size, size);
-        }
+    // Change selected object
+    var changeSelection = function(selected) {
+        selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+    }
+    
+    // Rescale selection shape
+    var rescaleSelection = function() {
+        var normalizedSize = (dataViewSquare.sideSize / canvas.width) * 10 * window.devicePixelRatio;
+        var size = normalizedSize / cameraData.zoom;
+        selection.scale.set(size, size, size);
     }
         
     // Find 3D object under mouse pointer
@@ -505,7 +468,7 @@ var pca2d = (function (model, config) {
     var highlightPicked = function() {
         if (picked != highlighted) {
             if (highlighted != null) {
-                particles.geometry.colors[highlighted] = new THREE.Color(model.data[lookupTable.get(highlighted)][config.colorAttribute]);
+                particles.geometry.colors[highlighted] = new THREE.Color(model.data[model.getElement(highlighted)][config.colorAttribute]);
             }
             if (picked != null) {
                 particles.geometry.colors[picked] = new THREE.Color(0xff00ff);
@@ -518,6 +481,8 @@ var pca2d = (function (model, config) {
     // Create/remove tooltip
     var updateTooltip = function() {
         if (picked != tooltip) {
+            var element = model.getElement(picked);
+            
             d3.select("#tooltip").remove();
             if (picked != null) {
                 var coordinate = mouse;
@@ -525,9 +490,9 @@ var pca2d = (function (model, config) {
                     .attr("id", "tooltip")
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
-                    .html(model.data[lookupTable.get(picked)][config.nameAttribute] +
-                              "</br>" + config.xAttribute + "=" + model.data[lookupTable.get(picked)][config.xAttribute] +
-                              "</br>" + config.yAttribute + "=" + model.data[lookupTable.get(picked)][config.yAttribute]);
+                    .html(model.data[element][config.nameAttribute] +
+                              "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] +
+                              "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute]);
             }
             tooltip = picked;
         }
@@ -584,15 +549,10 @@ var pca2d = (function (model, config) {
         drawAxes();
         drawSelection();
         
-        if (config.selected) {
-            // Linear scan until found will be slow for large datasets.
-            for (var [key, value] of lookupTable) {
-                if (value == config.selected) {
-                    sceneData.add(selection);
-                    selected = key;
-                    break;
-                }
-            }
+        var selected = model.getSelectedActiveElement();
+        if (selected) {
+            changeSelection(selected);
+            sceneData.add(selection);
         }
     };
     
@@ -600,8 +560,7 @@ var pca2d = (function (model, config) {
         initializeGL();
         initializeControls();
         initializeScene();
-        
-        this.drawNeighbors();
+      //  this.drawNeighbors();
     };
     
     var render = function() {
@@ -609,7 +568,7 @@ var pca2d = (function (model, config) {
         highlightPicked();
         updateTooltip();
         updateTickLabels();
-        updateSelection();
+        rescaleSelection();
         
         renderer.clear();
         renderer.render(sceneGrid, cameraGrid);
@@ -634,10 +593,13 @@ var pca2d = (function (model, config) {
         cameraData.updateProjectionMatrix();
         
         controls.target.set(0, 0, 0);
-    }
-    
-    this.updateData = function() {
+        
         drawData();
+        
+        var selected = model.getSelectedActiveElement();
+        if (selected) {
+            changeSelection(selected);
+        }
     }
     
     this.draw = function() {
@@ -649,17 +611,20 @@ var pca2d = (function (model, config) {
         config.xAttribute = name;
         updateView();
         updateLabel(labelX, name);
-        this.drawNeighbors();
+        
+//        this.drawNeighbors();
     }; 
     
     this.setYCoordinateAttr = function (name) {
         config.yAttribute = name;
         updateView();
         updateLabel(labelY, name);
-        this.drawNeighbors();
+        
+//        this.drawNeighbors();
     };
     
     this.deactivate = function() {
+        model.removeListener("pca2d");
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
         d3.select(config.canvasId).on("click", null);
@@ -688,5 +653,19 @@ var pca2d = (function (model, config) {
     
     calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
     calculateDataViewSquare();
+    
+    model.addListener("pca2d", function(dataChanged, selectionChanged) {
+        if (dataChanged) {
+            drawData();
+        }
         
+        if (selectionChanged) {
+            var selected = model.getSelectedActiveElement();
+            sceneData.remove(selection);   
+            if (selected) {
+                changeSelection(selected);
+                sceneData.add(selection);
+            }
+        }
+    });
 });
