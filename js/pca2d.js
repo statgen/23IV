@@ -1,4 +1,4 @@
-var pca2d = (function (data, config) {
+var pca2d = (function (model, config) {
     
     var canvas = d3.select(config.canvasId).node();
     var originalCanvasWidth = canvas.width;
@@ -94,9 +94,9 @@ var pca2d = (function (data, config) {
         dataBoundingRectangle.maxX = 0;
         dataBoundingRectangle.maxY = 0;
             
-        for (var i = 0; i < data.length; i++) {
-            x = data[i][xDimName];
-            y = data[i][yDimName];
+        for (var i = 0; i < model.data.length; i++) {
+            x = model.data[i][xDimName];
+            y = model.data[i][yDimName];
             if (x > dataBoundingRectangle.maxX) { dataBoundingRectangle.maxX = x; }
             if (x < dataBoundingRectangle.minX) { dataBoundingRectangle.minX = x; }
             if (y > dataBoundingRectangle.maxY) { dataBoundingRectangle.maxY = y; }
@@ -337,7 +337,8 @@ var pca2d = (function (data, config) {
 
         if (selected) {
             selectedDataItem = lookupTable.get(selected);
-            if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
+            if (model.isGroupActive(config.groupAttribute)) {
+//            if (!config.groups.has(data[selectedDataItem][config.groupAttribute])) {
                 sceneData.remove(selection);
                 selectedDataItem = null;
                 config.selected = null;
@@ -351,18 +352,27 @@ var pca2d = (function (data, config) {
         if (particles) {
             sceneData.remove(particles);
         }
-        
-        for (var i = 0, j = 0; i < data.length; i++) {
-            if (config.groups.has(data[i][config.groupAttribute])) {
-                geometry.vertices.push(new THREE.Vector3(data[i][config.xAttribute], data[i][config.yAttribute], 0));
-                geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
-                lookupTable.set(j, i);
-                if (i == selectedDataItem) {
-                    selected = j;
-                }
-                j++;
+
+        for (var j = 0; j < model.activeElements.length; j++) {
+            var i = model.activeElements[j];
+            geometry.vertices.push(new THREE.Vector3(model.data[i][config.xAttribute], model.data[i][config.yAttribute], 0));
+            geometry.colors.push(new THREE.Color(model.data[i][config.colorAttribute]));
+            lookupTable.set(j, i);
+            if (i == selectedDataItem) {
+                selected = j;
             }
         }
+//        for (var i = 0, j = 0; i < data.length; i++) {
+//            if (config.groups.has(data[i][config.groupAttribute])) {
+//                geometry.vertices.push(new THREE.Vector3(data[i][config.xAttribute], data[i][config.yAttribute], 0));
+//                geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
+//                lookupTable.set(j, i);
+//                if (i == selectedDataItem) {
+//                    selected = j;
+//                }
+//                j++;
+//            }
+//        }
         
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
@@ -495,7 +505,7 @@ var pca2d = (function (data, config) {
     var highlightPicked = function() {
         if (picked != highlighted) {
             if (highlighted != null) {
-                particles.geometry.colors[highlighted] = new THREE.Color(data[lookupTable.get(highlighted)][config.colorAttribute]);
+                particles.geometry.colors[highlighted] = new THREE.Color(model.data[lookupTable.get(highlighted)][config.colorAttribute]);
             }
             if (picked != null) {
                 particles.geometry.colors[picked] = new THREE.Color(0xff00ff);
@@ -515,9 +525,9 @@ var pca2d = (function (data, config) {
                     .attr("id", "tooltip")
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
-                    .html(data[lookupTable.get(picked)][config.nameAttribute] +
-                              "</br>" + config.xAttribute + "=" + data[lookupTable.get(picked)][config.xAttribute] +
-                              "</br>" + config.yAttribute + "=" + data[lookupTable.get(picked)][config.yAttribute]);
+                    .html(model.data[lookupTable.get(picked)][config.nameAttribute] +
+                              "</br>" + config.xAttribute + "=" + model.data[lookupTable.get(picked)][config.xAttribute] +
+                              "</br>" + config.yAttribute + "=" + model.data[lookupTable.get(picked)][config.yAttribute]);
             }
             tooltip = picked;
         }
