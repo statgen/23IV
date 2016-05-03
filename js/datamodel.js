@@ -188,7 +188,7 @@ var DataModel = (function (data, dimensionNames, groups) {
             
         for (var i = 0; i < thisArg.activeElements.length; ++i) {
             element = thisArg.activeElements[i];
-            if (model.data[element] != "#000000") {
+            if (model.data[element]["color"] != "#000000") {
                 sortedNeighbors[i] = { distance: thisArg.distance(element, selectedElement), index: i};
             }
         }

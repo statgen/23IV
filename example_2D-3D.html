@@ -227,13 +227,14 @@
                         .attr("transform", "translate(" + radius + ", " + radius + ")");
             
             var counts = new Map();
-            for (var i = 0; i < config.selectedNeighbors.length; ++i) {
-                var dataItem = config.selectedNeighbors[i].index;
-                var count = counts.get(model.data[dataItem][config.colorAttribute]);
+
+            for (var i = 0; i < model.nearestNeighbors.length; i++) {
+                var element = model.activeElements[model.nearestNeighbors[i]];
+                var count = counts.get(model.data[element][config.colorAttribute]);
                 if (count) {
-                    counts.set(model.data[dataItem][config.colorAttribute], count + 1);
+                    counts.set(model.data[element][config.colorAttribute], count + 1);
                 } else {
-                    counts.set(model.data[dataItem][config.colorAttribute], 1);
+                    counts.set(model.data[element][config.colorAttribute], 1);
                 }
             }
                             
@@ -384,24 +385,20 @@
             gl.initialize();
         }
         
-        model.addListener("piechart", function(dataChanged, selectionChanged) {
+        model.addListener("piechart", function(dataChanged, selectionChanged, neighborsChanged) {
             if (selectionChanged) {
                 var selected = model.getSelectedElement();
                 if (selected) {
                     d3.select("#pielabel").text(model.data[selected].name);
-                    
-//                    var d = parseInt(d3.select("#pc").select("input").node().value);
-  //                  var k = parseInt(d3.select("#k").select("input").node().value);
-                    
-    //                if (k > 0) {
-                        //config.selectedNeighbors = knearest(d, k);
-//                        addPieChart(piechartPlotDiv, 80);
-      //              } else {
-        //                config.selectedNeighbors = null;
-          //          }
                 } else {
                     d3.select("#pielabel").text("Selected: None");
-            //        removePieChart();
+                }
+            }
+            
+            if (neighborsChanged) {
+                removePieChart();
+                if (model.nearestNeighbors.length > 0) {
+                    addPieChart(piechartPlotDiv, 80);
                 }
             }
         });
