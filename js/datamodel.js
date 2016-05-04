@@ -218,6 +218,10 @@ var DataModel = (function (data, dimensionNames, groups) {
         
         notifyListeners(false, false, true);
     }
+    
+    this.getKNearestNeighbors = function() {
+        return kNearestNeighbors;
+    }
         
     this.distance = function(element1, element2) {
         var distance = 0;

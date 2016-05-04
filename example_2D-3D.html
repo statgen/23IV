@@ -387,18 +387,20 @@
         
         model.addListener("piechart", function(dataChanged, selectionChanged, neighborsChanged) {
             if (dataChanged) {                
-//                var value = d3.select("#k").select("input").attr("value");
                 var value = d3.select("#k").select("input").node().value;
-                console.log(value);
-                console.log(model.activeNeighbors.length)
+                var k = model.getKNearestNeighbors();
                 
                 d3.select("#k").select("input").attr("max", model.activeNeighbors.length);
                 
                 if (value > model.activeNeighbors.length) {
-                    d3.select("#k").select("input").attr("value", model.activeNeighbors.length);
-                    d3.select(d3.select("#k").select("li").node().nextSibling).text(model.activeNeighbors.length)
-                }
-                
+                    console.log("here1 " + model.activeNeighbors.length);
+                    d3.select("#k").select("input").node().value = model.activeNeighbors.length;
+                    d3.select(d3.select("#k").select("li").node().nextSibling).text(model.activeNeighbors.length);
+                } else if (value < k) {
+                    console.log("here2 " + k);
+                    d3.select("#k").select("input").node().value = k;
+                    d3.select(d3.select("#k").select("li").node().nextSibling).text(k);                   
+                }   
             }
             
             if (selectionChanged) {
