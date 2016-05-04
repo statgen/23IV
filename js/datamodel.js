@@ -6,13 +6,14 @@ var DataModel = (function (data, dimensionNames, groups) {
     this.activeGroups = {};
     this.inactiveGroups = {};
     this.activeElements = [];
+    this.activeNeighbors = [];
+    this.nearestActiveNeighbors = [];
     
     var selectedActiveElement = null;
-    this.nearestNeighbors = [];
     
     var maxDimensions = dimensionNames.length;
     var kNearestNeighbors = 0;
-    var sortedNeighbors = null;
+    var sortedActiveNeighbors = null;
     
     var listeners = {};
     
@@ -23,6 +24,10 @@ var DataModel = (function (data, dimensionNames, groups) {
     for (var i = 0; i < this.data.length; i++) {
         this.activeElements.push(i);
         this.activeGroups[this.data[i]["color"]].push(i);
+        
+        if (this.data[i]["color"] != "#000000") {
+            this.activeNeighbors.push(i);
+        }
     }
     
     this.addListener = function(name, callback) {
@@ -50,10 +55,10 @@ var DataModel = (function (data, dimensionNames, groups) {
         
         if (selectedActiveElement) {
             sortNeighbors(this);
-            this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+            this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
         } else {
             sortedNeighbors = null;
-            this.nearestNeighbors = [];
+            this.nearestActiveNeighbors = [];
         }
         
         notifyListeners(false, true, true);
@@ -77,7 +82,7 @@ var DataModel = (function (data, dimensionNames, groups) {
             if (selectedElement) {
                 if (this.data[selectedElement]["color"] == name) {
                     selectedActiveElement = null;
-                    this.nearestNeighbors = [];
+                    this.nearestActiveNeighbors = [];
                 }
             }
             
@@ -85,7 +90,7 @@ var DataModel = (function (data, dimensionNames, groups) {
             delete this.activeGroups[name];
             
             var i = 0;
-
+            
             this.activeElements = this.activeElements.filter(
                 function(value, index, array) { 
                     if (this.activeGroups.hasOwnProperty(data[value]["color"])) {
@@ -100,9 +105,32 @@ var DataModel = (function (data, dimensionNames, groups) {
                 this
             );
             
+            this.activeNeighbors = new Array();
+            for (var j = 0; j < this.activeElements.length; j++) {
+                if (this.data[this.activeElements[j]]["color"] != "#000000") {
+                    this.activeNeighbors.push(j);
+                }
+            }
+            
+//            if (this.activeGroups.hasOwnProperty("#000000")) {
+//                var length = this.activeElements.length - this.activeGroups["#000000"].length;
+//                this.activeNeighbors = new Array(length);
+//                for (var j = 0, i = 0; j < this.activeElements.length; j++) {
+//                    if (this.data[this.activeElements[j]]["color"] != "#000000") {
+//                        this.activeNeighbors[i] = j;
+//                        i++;
+//                    }
+//                }
+//            } else {
+//                this.activeNeighbors = new Array(this.activeElements.length);
+//                for (var j = 0; j < this.activeElements.length; j++) {
+//                    this.activeNeighbors[j] = j;
+//                }
+//            }
+            
             if (selectedActiveElement) {
                 sortNeighbors(this);
-                this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+                this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
             }
                         
             notifyListeners(true, true, true);
@@ -115,9 +143,32 @@ var DataModel = (function (data, dimensionNames, groups) {
             delete this.inactiveGroups[name];
             Array.prototype.push.apply(this.activeElements, this.activeGroups[name]);
             
+//            if (this.activeGroups.hasOwnProperty("#000000")) {
+//                var length = this.activeElements.length - this.activeGroups["#000000"].length;
+//                this.activeNeighbors = new Array(length);
+//                for (var j = 0, i = 0; j < this.activeElements.length; j++) {
+//                    if (this.data[this.activeElements[j]]["color"] != "#000000") {
+//                        this.activeNeighbors[i] = j;
+//                        i++;
+//                    }
+//                }
+//            } else {
+//                this.activeNeighbors = new Array(this.activeElements.length);
+//                for (var j = 0; j < this.activeElements.length; j++) {
+//                    this.activeNeighbors[j] = j;
+//                }
+//            }
+            
+            this.activeNeighbors = new Array();
+            for (var j = 0; j < this.activeElements.length; j++) {
+                if (this.data[this.activeElements[j]]["color"] != "#000000") {
+                    this.activeNeighbors.push(j);
+                }
+            }
+            
             if (selectedActiveElement) {
                 sortNeighbors(this);
-                this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+                this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
             }
             
             notifyListeners(true, false, true);
@@ -141,7 +192,7 @@ var DataModel = (function (data, dimensionNames, groups) {
         
         if (selectedActiveElement) {
             sortNeighbors(this);
-            this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+            this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
             notifyListeners(false, false, true);
         }
     }
@@ -162,7 +213,7 @@ var DataModel = (function (data, dimensionNames, groups) {
         }
         
         if (selectedActiveElement) {
-            this.nearestNeighbors = sortedNeighbors.slice(1, 1 + kNearestNeighbors);
+            this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
         }
         
         notifyListeners(false, false, true);
@@ -184,19 +235,17 @@ var DataModel = (function (data, dimensionNames, groups) {
         var element = null;
         var selectedElement = thisArg.getSelectedElement();
         
-        sortedNeighbors = new Array(thisArg.activeElements.length);
+        sortedActiveNeighbors = new Array(thisArg.activeNeighbors.length);
             
-        for (var i = 0; i < thisArg.activeElements.length; ++i) {
-            element = thisArg.activeElements[i];
-            if (model.data[element]["color"] != "#000000") {
-                sortedNeighbors[i] = { distance: thisArg.distance(element, selectedElement), index: i};
-            }
+        for (var i = 0; i < thisArg.activeNeighbors.length; ++i) {
+            element = thisArg.activeElements[thisArg.activeNeighbors[i]];
+            sortedActiveNeighbors[i] = { distance: thisArg.distance(element, selectedElement), index: thisArg.activeNeighbors[i]};
         }
-        sortedNeighbors.sort(function(f, s) {
+        sortedActiveNeighbors.sort(function(f, s) {
             return f.distance - s.distance;
         });
         
-        sortedNeighbors = sortedNeighbors.map(
+        sortedActiveNeighbors = sortedActiveNeighbors.map(
             function(value, index, array) {
                 return value.index;
             }, 

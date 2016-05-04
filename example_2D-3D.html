@@ -228,8 +228,8 @@
             
             var counts = new Map();
 
-            for (var i = 0; i < model.nearestNeighbors.length; i++) {
-                var element = model.activeElements[model.nearestNeighbors[i]];
+            for (var i = 0; i < model.nearestActiveNeighbors.length; i++) {
+                var element = model.activeElements[model.nearestActiveNeighbors[i]];
                 var count = counts.get(model.data[element][config.colorAttribute]);
                 if (count) {
                     counts.set(model.data[element][config.colorAttribute], count + 1);
@@ -325,7 +325,7 @@
             model.setMaxDimensions(value);
         });
         
-        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 0, model.activeElements.length, model.nearestNeighbors.length, function(value) {
+        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 0, model.activeNeighbors.length, model.nearestActiveNeighbors.length, function(value) {
             model.setKNearestNeighbors(value);
         });
         /* END: Piechart */
@@ -386,6 +386,21 @@
         }
         
         model.addListener("piechart", function(dataChanged, selectionChanged, neighborsChanged) {
+            if (dataChanged) {                
+//                var value = d3.select("#k").select("input").attr("value");
+                var value = d3.select("#k").select("input").node().value;
+                console.log(value);
+                console.log(model.activeNeighbors.length)
+                
+                d3.select("#k").select("input").attr("max", model.activeNeighbors.length);
+                
+                if (value > model.activeNeighbors.length) {
+                    d3.select("#k").select("input").attr("value", model.activeNeighbors.length);
+                    d3.select(d3.select("#k").select("li").node().nextSibling).text(model.activeNeighbors.length)
+                }
+                
+            }
+            
             if (selectionChanged) {
                 var selected = model.getSelectedElement();
                 if (selected) {
@@ -397,7 +412,7 @@
             
             if (neighborsChanged) {
                 removePieChart();
-                if (model.nearestNeighbors.length > 0) {
+                if (model.nearestActiveNeighbors.length > 0) {
                     addPieChart(piechartPlotDiv, 80);
                 }
             }

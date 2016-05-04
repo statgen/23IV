@@ -391,7 +391,7 @@ var pca2d = (function (model, config) {
             neighbors = null;
         }
         
-        if (model.nearestNeighbors.length > 0) {
+        if (model.nearestActiveNeighbors.length > 0) {
             var selected = model.getSelectedActiveElement();
 
             var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
@@ -402,9 +402,9 @@ var pca2d = (function (model, config) {
             var x = 0;
             var y = 0;
             
-            for (var i = 0; i < model.nearestNeighbors.length; i++) {
-                x = particles.geometry.vertices[model.nearestNeighbors[i]].x;
-                y = particles.geometry.vertices[model.nearestNeighbors[i]].y;
+            for (var i = 0; i < model.nearestActiveNeighbors.length; i++) {
+                x = particles.geometry.vertices[model.nearestActiveNeighbors[i]].x;
+                y = particles.geometry.vertices[model.nearestActiveNeighbors[i]].y;
                 geometry.vertices.push(new THREE.Vector3(x0, y0, 0));
                 geometry.vertices.push(new THREE.Vector3(x, y, 0));
             }
