@@ -8,35 +8,27 @@
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>
     
 	<style type="text/css">
-        #plot {
+        #pcaplot {
             position: relative;
             width: 800px;
-            height: 700px;
+            height: 500px;
             margin-left: auto;
             margin-right: auto;
         }
     
-        #legend {
+        #pcalegend {
             position: absolute;
             top: 15%;
             right: 0px;
         }
     
-        #controls {
+        #pcacontrols {
             position: absolute;
             top: 15%;
             left: 0px;
         }
         
-        #piechart {
-            position: absolute;
-            width: 800px;
-            height: 200px;
-            top: 500px;
-            right: 0px;
-        }
-        
-        #pca_canvas {
+        #pcacanvas {
             background-color: #ffffff;
             border: 1px solid #ffffff;
             position: absolute;
@@ -44,7 +36,53 @@
             right: 150px;
             z-index: 1;
         }
-    
+        
+        #pieplot {
+            position: relative;
+            width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        #pielabel {
+            position: absolute;
+            width: 100%;
+            top: 0%;
+            left: 0px;
+        }
+        
+        #pieform {
+            position: absolute;
+            width: 100%;
+            top: 40px;
+            left: 0px;
+        }
+        
+        #piealert {
+            position: absolute;
+            width: 100%;
+            top: 40px;
+            left: 0px;
+        }
+        
+        #piecontrols {
+            position: absolute;
+            width: 300px;
+            left: 0px;
+        }
+        
+        #piesvg {
+            position: absolute;
+            width: 200px;
+            left: 300px;
+        }
+        
+        #pielegend {
+            position: absolute;
+            width: 200px;
+            left: 550px;
+        }
+
         #tooltip {
             position: absolute;
             color: #ffffff;
@@ -78,6 +116,14 @@
                       {"name":"Oceania","color":"#339933"},
                       {"name":"America","color":"#800080"},
                       {"name":"Study","color":"#000000"}];
+        var colors = {"#FF6600" : "Africa", 
+                      "#0099E6": "Europe", 
+                      "#DBEE06": "Middle East", 
+                      "#F90026": "C/S Asia", 
+                      "#FF99E6": "East Asia",
+                      "#339933": "Oceania",
+                      "#800080": "America",
+                      "#000000": "Study"};
 		var data_orig = [{"name": "HGDP00001, Brahui","color": "#F90026","PC1": 3.4333,"PC2": -22.0866,"PC3": -1.06818},{"name": "HGDP00003, Brahui","color": "#F90026","PC1": 0.697541,"PC2": -16.7171,"PC3": 4.26997},{"name": "HGDP00011, Brahui","color": "#F90026","PC1": 1.78508,"PC2": -15.0478,"PC3": 2.55178},{"name": "HGDP00025, Brahui","color": "#F90026","PC1": -2.21339,"PC2": -17.6964,"PC3": -6.84051},{"name": "HGDP00027, Brahui","color": "#F90026","PC1": -9.03022,"PC2": -7.60622,"PC3": 3.03746},{"name": "HGDP00057, Balochi","color": "#F90026","PC1": 11.7513,"PC2": -5.99268,"PC3": -3.35054},{"name": "HGDP00074, Balochi","color": "#F90026","PC1": -4.07333,"PC2": -13.2451,"PC3": 0.458505},{"name": "HGDP00082, Balochi","color": "#F90026","PC1": -0.772281,"PC2": -17.9453,"PC3": 3.53897},{"name": "HGDP00086, Balochi","color": "#F90026","PC1": 0.502016,"PC2": -17.2273,"PC3": 7.7751},{"name": "HGDP00109, Hazara","color": "#F90026","PC1": -14.2041,"PC2": 3.11092,"PC3": 8.18533},{"name": "HGDP00119, Hazara","color": "#F90026","PC1": -5.33264,"PC2": -9.51486,"PC3": 2.36654},{"name": "HGDP00120, Hazara","color": "#F90026","PC1": -13.6873,"PC2": -2.49642,"PC3": 3.47104},{"name": "HGDP00122, Hazara","color": "#F90026","PC1": -8.87535,"PC2": -7.82657,"PC3": 4.8352},{"name": "HGDP00125, Hazara","color": "#F90026","PC1": -17.4518,"PC2": 3.34179,"PC3": 5.70954},{"name": "HGDP00127, Hazara","color": "#F90026","PC1": -15.0031,"PC2": 7.40629,"PC3": -0.115688},{"name": "HGDP00131, Makrani","color": "#F90026","PC1": -0.0124245,"PC2": -14.7797,"PC3": 5.64435},{"name": "HGDP00133, Makrani","color": "#F90026","PC1": -2.15852,"PC2": -13.6638,"PC3": 6.33017},{"name": "HGDP00175, Sindhi","color": "#F90026","PC1": 26.0045,"PC2": 7.84076,"PC3": 1.81345},{"name": "HGDP00183, Sindhi","color": "#F90026","PC1": -4.51705,"PC2": -7.28215,"PC3": 4.45384},{"name": "HGDP00187, Sindhi","color": "#F90026","PC1": -2.68085,"PC2": -8.07088,"PC3": 3.20088},{"name": "HGDP00205, Sindhi","color": "#F90026","PC1": -2.15173,"PC2": -14.9174,"PC3": 2.24332},{"name": "HGDP00210, Sindhi","color": "#F90026","PC1": -2.53421,"PC2": -16.3597,"PC3": 1.72362},{"name": "HGDP00214, Pathan","color": "#F90026","PC1": -3.36276,"PC2": -9.85975,"PC3": -1.03344},{"name": "HGDP00226, Pathan","color": "#F90026","PC1": -1.7919,"PC2": -16.6324,"PC3": -5.68596},{"name": "HGDP00234, Pathan","color": "#F90026","PC1": -4.74815,"PC2": -13.8706,"PC3": -0.772873},{"name": "HGDP00274, Kalash","color": "#F90026","PC1": -4.14603,"PC2": -14.5487,"PC3": -0.547669},{"name": "HGDP00279, Kalash","color": "#F90026","PC1": -1.05864,"PC2": -11.8156,"PC3": 4.93737},{"name": "HGDP00285, Kalash","color": "#F90026","PC1": -2.21414,"PC2": -19.9998,"PC3": 3.78989},{"name": "HGDP00290, Kalash","color": "#F90026","PC1": -5.17062,"PC2": -14.6133,"PC3": -6.24131},{"name": "HGDP00298, Kalash","color": "#F90026","PC1": -4.29198,"PC2": -18.4659,"PC3": -1.97584},{"name": "HGDP00304, Kalash","color": "#F90026","PC1": -5.62947,"PC2": -12.0633,"PC3": 0.0924491},{"name": "HGDP00315, Kalash","color": "#F90026","PC1": -4.521,"PC2": -9.16034,"PC3": 0.113645},{"name": "HGDP00330, Kalash","color": "#F90026","PC1": 1.52576,"PC2": -17.3911,"PC3": -0.502774},{"name": "HGDP00336, Burusho","color": "#F90026","PC1": -0.62005,"PC2": -18.049,"PC3": 3.05376},{"name": "HGDP00359, Burusho","color": "#F90026","PC1": -3.41898,"PC2": -13.5505,"PC3": 2.9364},{"name": "HGDP00371, Burusho","color": "#F90026","PC1": -6.17427,"PC2": -10.182,"PC3": 1.89486},{"name": "HGDP00372, Burusho","color": "#F90026","PC1": -3.99543,"PC2": -16.1195,"PC3": -3.62039},{"name": "HGDP00397, Burusho","color": "#F90026","PC1": -2.16179,"PC2": -13.3419,"PC3": 1.52724},{"name": "HGDP00402, Burusho","color": "#F90026","PC1": -6.53256,"PC2": -9.89865,"PC3": 0.421748},{"name": "HGDP00407, Burusho","color": "#F90026","PC1": -4.40839,"PC2": -8.56907,"PC3": -1.22201},{"name": "HGDP00433, Burusho","color": "#F90026","PC1": -6.04648,"PC2": -5.33684,"PC3": -0.18084},{"name": "HGDP00445, Burusho","color": "#F90026","PC1": -2.61232,"PC2": -14.8638,"PC3": -0.861334},{"name": "HGDP00450, Mbuti (Pygmy)","color": "#FF6600","PC1": 63.6311,"PC2": 32.2243,"PC3": -3.58531},{"name": "HGDP00454, Biaka (Pygmy)","color": "#FF6600","PC1": 68.0111,"PC2": 32.7394,"PC3": -4.55423},{"name": "HGDP00465, Biaka (Pygmy)","color": "#FF6600","PC1": 63.2619,"PC2": 30.437,"PC3": -0.399996},{"name": "HGDP00467, Mbuti (Pygmy)","color": "#FF6600","PC1": 58.4816,"PC2": 29.6459,"PC3": -4.24797},{"name": "HGDP00470, Biaka (Pygmy)","color": "#FF6600","PC1": 65.4634,"PC2": 32.43,"PC3": -3.58285},{"name": "HGDP00472, Biaka (Pygmy)","color": "#FF6600","PC1": 67.1141,"PC2": 34.0444,"PC3": -4.42999},{"name": "HGDP00474, Mbuti (Pygmy)","color": "#FF6600","PC1": 62.0528,"PC2": 29.1253,"PC3": -7.87533},{"name": "HGDP00491, Melanesian","color": "#339933","PC1": -16.1967,"PC2": 19.3048,"PC3": 30.0926},{"name": "HGDP00511, French","color": "#0099E6","PC1": 0.820346,"PC2": -27.5824,"PC3": -1.22549},{"name": "HGDP00520, French","color": "#0099E6","PC1": 0.627408,"PC2": -22.4503,"PC3": -0.546163},{"name": "HGDP00530, French","color": "#0099E6","PC1": 1.20891,"PC2": -28.6724,"PC3": -1.6927},{"name": "HGDP00534, French","color": "#0099E6","PC1": 1.84824,"PC2": -23.4518,"PC3": -6.21189},{"name": "HGDP00541, Papuan","color": "#339933","PC1": -17.1755,"PC2": 19.5951,"PC3": 32.6593},{"name": "HGDP00542, Papuan","color": "#339933","PC1": -17.2528,"PC2": 20.2076,"PC3": 32.992},{"name": "HGDP00547, Papuan","color": "#339933","PC1": -15.8619,"PC2": 18.5108,"PC3": 32.1465},{"name": "HGDP00555, Papuan","color": "#339933","PC1": -13.2357,"PC2": 19.9266,"PC3": 23.5521},{"name": "HGDP00580, Druze","color": "#DBEE06","PC1": 6.00588,"PC2": -23.0776,"PC3": 1.95018},{"name": "HGDP00595, Druze","color": "#DBEE06","PC1": 4.25184,"PC2": -23.8967,"PC3": -3.24561},{"name": "HGDP00597, Druze","color": "#DBEE06","PC1": 4.40724,"PC2": -27.8116,"PC3": 0.373603},{"name": "HGDP00600, Druze","color": "#DBEE06","PC1": 2.52656,"PC2": -24.5715,"PC3": 1.8725},{"name": "HGDP00601, Druze","color": "#DBEE06","PC1": 7.57072,"PC2": -20.7012,"PC3": 1.71782},{"name": "HGDP00602, Druze","color": "#DBEE06","PC1": 5.38684,"PC2": -15.1259,"PC3": -0.813496},{"name": "HGDP00606, Druze","color": "#DBEE06","PC1": 3.22121,"PC2": -25.6605,"PC3": -0.154875},{"name": "HGDP00607, Bedouin","color": "#DBEE06","PC1": 9.39378,"PC2": -16.1262,"PC3": 0.0936987},{"name": "HGDP00609, Bedouin","color": "#DBEE06","PC1": 3.07449,"PC2": -14.597,"PC3": 1.35979},{"name": "HGDP00610, Bedouin","color": "#DBEE06","PC1": 4.01943,"PC2": -24.7026,"PC3": 3.14369},{"name": "HGDP00611, Bedouin","color": "#DBEE06","PC1": 17.7484,"PC2": -6.4037,"PC3": -1.51262},{"name": "HGDP00613, Bedouin","color": "#DBEE06","PC1": 1.92204,"PC2": -25.7807,"PC3": 4.93099},{"name": "HGDP00616, Bedouin","color": "#DBEE06","PC1": 10.9269,"PC2": -22.2518,"PC3": 1.82673},{"name": "HGDP00618, Bedouin","color": "#DBEE06","PC1": 7.09269,"PC2": -20.9101,"PC3": 0.841726},{"name": "HGDP00619, Bedouin","color": "#DBEE06","PC1": 2.516,"PC2": -24.3959,"PC3": 3.78071},{"name": "HGDP00629, Bedouin","color": "#DBEE06","PC1": 10.7765,"PC2": -17.4436,"PC3": -0.783517},{"name": "HGDP00630, Bedouin","color": "#DBEE06","PC1": 12.5291,"PC2": -24.6208,"PC3": -0.744383},{"name": "HGDP00636, Bedouin","color": "#DBEE06","PC1": 11.511,"PC2": -21.0477,"PC3": 5.05835},{"name": "HGDP00645, Bedouin","color": "#DBEE06","PC1": 2.56786,"PC2": -15.9838,"PC3": 4.06754},{"name": "HGDP00649, Bedouin","color": "#DBEE06","PC1": 8.75127,"PC2": -22.0795,"PC3": -3.33155},{"name": "HGDP00650, Bedouin","color": "#DBEE06","PC1": 12.5536,"PC2": -23.1493,"PC3": -3.03168},{"name": "HGDP00653, Bedouin","color": "#DBEE06","PC1": 4.33078,"PC2": -26.7115,"PC3": -0.371834},{"name": "HGDP00655, Melanesian","color": "#339933","PC1": -15.8318,"PC2": 20.2444,"PC3": 28.3057},{"name": "HGDP00979, Melanesian","color": "#339933","PC1": -17.2626,"PC2": 19.6798,"PC3": 33.2862},{"name": "HGDP00663, Melanesian","color": "#339933","PC1": -13.7383,"PC2": 18.0447,"PC3": 30.378},{"name": "HGDP00664, Melanesian","color": "#339933","PC1": -16.2451,"PC2": 19.1326,"PC3": 29.973},{"name": "HGDP00666, Sardinian","color": "#0099E6","PC1": 3.9608,"PC2": -23.9123,"PC3": 1.62855},{"name": "HGDP00672, Sardinian","color": "#0099E6","PC1": 3.97097,"PC2": -28.9602,"PC3": 5.91562},{"name": "HGDP00673, Sardinian","color": "#0099E6","PC1": 2.41172,"PC2": -28.5178,"PC3": -0.958287},{"name": "HGDP00677, Palestinian","color": "#DBEE06","PC1": 12.0263,"PC2": -20.4251,"PC3": 3.06901},{"name": "HGDP00678, Palestinian","color": "#DBEE06","PC1": 8.37727,"PC2": -26.0331,"PC3": 3.201},{"name": "HGDP00679, Palestinian","color": "#DBEE06","PC1": 7.92834,"PC2": -21.9882,"PC3": 0.162756},{"name": "HGDP00680, Palestinian","color": "#DBEE06","PC1": 9.39753,"PC2": -19.933,"PC3": 4.09596},{"name": "HGDP00682, Palestinian","color": "#DBEE06","PC1": 4.66184,"PC2": -18.2529,"PC3": 1.99711},{"name": "HGDP00686, Palestinian","color": "#DBEE06","PC1": 8.30281,"PC2": -18.3806,"PC3": -0.344158},{"name": "HGDP00688, Palestinian","color": "#DBEE06","PC1": 10.1389,"PC2": -23.4342,"PC3": 4.54894},{"name": "HGDP00696, Palestinian","color": "#DBEE06","PC1": -0.477802,"PC2": -18.3163,"PC3": -6.93644},{"name": "HGDP00699, Palestinian","color": "#DBEE06","PC1": 11.5825,"PC2": -17.1041,"PC3": -0.360887},{"name": "HGDP00701, Bedouin","color": "#DBEE06","PC1": 10.999,"PC2": -18.7532,"PC3": 2.98061},{"name": "HGDP00706, Colombian","color": "#800080","PC1": -29.2231,"PC2": 16.6007,"PC3": -47.3777},{"name": "HGDP00708, Colombian","color": "#800080","PC1": -23.6856,"PC2": 18.0318,"PC3": -50.1793},{"name": "HGDP00710, Colombian","color": "#800080","PC1": -26.0068,"PC2": 15.8079,"PC3": -51.3998},{"name": "HGDP00713, Cambodian","color": "#FF99E6","PC1": -22.2247,"PC2": 18.7703,"PC3": 8.23889},{"name": "HGDP00720, Cambodian","color": "#FF99E6","PC1": -18.9852,"PC2": 19.7491,"PC3": 16.6408},{"name": "HGDP00722, Palestinian","color": "#DBEE06","PC1": 2.89281,"PC2": -17.6023,"PC3": 2.76387},{"name": "HGDP00727, Palestinian","color": "#DBEE06","PC1": 8.31783,"PC2": -24.3279,"PC3": 5.78175},{"name": "HGDP00730, Palestinian","color": "#DBEE06","PC1": 13.1427,"PC2": -18.3688,"PC3": 3.67474},{"name": "HGDP00732, Palestinian","color": "#DBEE06","PC1": 4.76508,"PC2": -17.8728,"PC3": -0.623494},{"name": "HGDP00733, Palestinian","color": "#DBEE06","PC1": 9.56434,"PC2": -21.5017,"PC3": -5.13502},{"name": "HGDP00737, Palestinian","color": "#DBEE06","PC1": 10.6064,"PC2": -18.6719,"PC3": 0.0257017},{"name": "HGDP00738, Palestinian","color": "#DBEE06","PC1": 7.5753,"PC2": -20.3744,"PC3": 4.5138},{"name": "HGDP00739, Palestinian","color": "#DBEE06","PC1": 9.71851,"PC2": -24.4995,"PC3": 3.25085},{"name": "HGDP00740, Palestinian","color": "#DBEE06","PC1": 2.78562,"PC2": -17.749,"PC3": 0.635839},{"name": "HGDP00744, Palestinian","color": "#DBEE06","PC1": 9.94354,"PC2": -25.7242,"PC3": -1.76},{"name": "HGDP00745, Palestinian","color": "#DBEE06","PC1": 4.38157,"PC2": -21.4634,"PC3": -5.77537},{"name": "HGDP00774, Han","color": "#FF99E6","PC1": -22.9723,"PC2": 24.3059,"PC3": 12.8759},{"name": "HGDP00776, Han","color": "#FF99E6","PC1": -20.5845,"PC2": 27.626,"PC3": 9.75373},{"name": "HGDP00777, Han","color": "#FF99E6","PC1": -27.2923,"PC2": 23.5462,"PC3": 12.1165},{"name": "HGDP00778, Han","color": "#FF99E6","PC1": -27.3597,"PC2": 22.3524,"PC3": 8.78798},{"name": "HGDP00779, Han","color": "#FF99E6","PC1": -26.4633,"PC2": 24.918,"PC3": 13.5925},{"name": "HGDP00781, Han","color": "#FF99E6","PC1": -23.3301,"PC2": 29.9837,"PC3": 13.1296},{"name": "HGDP00786, Han","color": "#FF99E6","PC1": -28.0435,"PC2": 27.5563,"PC3": 13.2702},{"name": "HGDP00806, Orcadian","color": "#0099E6","PC1": -3.22769,"PC2": -26.0353,"PC3": 0.330186},{"name": "HGDP00813, Han","color": "#FF99E6","PC1": -25.1692,"PC2": 22.4742,"PC3": 14.3495},{"name": "HGDP00814, Han","color": "#FF99E6","PC1": -25.5802,"PC2": 24.9104,"PC3": 14.6965},{"name": "HGDP00838, Surui","color": "#800080","PC1": -26.3532,"PC2": 15.1067,"PC3": -59.286},{"name": "HGDP00843, Surui","color": "#800080","PC1": -25.4516,"PC2": 14.9876,"PC3": -55.4},{"name": "HGDP00845, Surui","color": "#800080","PC1": -26.3914,"PC2": 19.5297,"PC3": -51.8151},{"name": "HGDP00857, Maya","color": "#800080","PC1": -23.9563,"PC2": 15.106,"PC3": -38.611},{"name": "HGDP00861, Maya","color": "#800080","PC1": -3.96548,"PC2": 17.3224,"PC3": -33.0477},{"name": "HGDP00872, Maya","color": "#800080","PC1": -25.1905,"PC2": 18.7509,"PC3": -44.9322},{"name": "HGDP00875, Maya","color": "#800080","PC1": -26.6218,"PC2": 13.8693,"PC3": -44.1381},{"name": "HGDP00876, Maya","color": "#800080","PC1": -22.2755,"PC2": 7.72375,"PC3": -32.7867},{"name": "HGDP00877, Maya","color": "#800080","PC1": -24.3287,"PC2": 12.3475,"PC3": -38.6331},{"name": "HGDP00879, Russian","color": "#0099E6","PC1": -1.70319,"PC2": -17.5959,"PC3": 2.61986},{"name": "HGDP00880, Russian","color": "#0099E6","PC1": 0.961377,"PC2": -23.7163,"PC3": 2.81134},{"name": "HGDP00882, Russian","color": "#0099E6","PC1": -4.4043,"PC2": -9.95946,"PC3": -0.642165},{"name": "HGDP00884, Russian","color": "#0099E6","PC1": -0.661101,"PC2": -23.2794,"PC3": -3.52228},{"name": "HGDP00889, Russian","color": "#0099E6","PC1": 1.0807,"PC2": -23.8582,"PC3": -1.23526},{"name": "HGDP00893, Russian","color": "#0099E6","PC1": -0.928135,"PC2": -14.6242,"PC3": 3.16329},{"name": "HGDP00895, Russian","color": "#0099E6","PC1": -3.81817,"PC2": -20.3469,"PC3": -5.98882},{"name": "HGDP00897, Russian","color": "#0099E6","PC1": -4.90211,"PC2": -17.6045,"PC3": 1.63816},{"name": "HGDP00902, Russian","color": "#0099E6","PC1": -5.05334,"PC2": -15.4895,"PC3": -4.17818},{"name": "HGDP00909, Mandenka","color": "#FF6600","PC1": 61.2046,"PC2": 25.6454,"PC3": 0.68686},{"name": "HGDP00911, Mandenka","color": "#FF6600","PC1": 59.7163,"PC2": 25.2637,"PC3": -3.28074},{"name": "HGDP00915, Mandenka","color": "#FF6600","PC1": 59.7872,"PC2": 24.4309,"PC3": -0.0586422},{"name": "HGDP00925, Yoruba","color": "#FF6600","PC1": 62.3267,"PC2": 29.3897,"PC3": -1.62432},{"name": "HGDP00926, Yoruba","color": "#FF6600","PC1": 60.43,"PC2": 24.0597,"PC3": 0.557896},{"name": "HGDP00929, Yoruba","color": "#FF6600","PC1": 63.0336,"PC2": 29.928,"PC3": -5.75569},{"name": "HGDP00935, Yoruba","color": "#FF6600","PC1": 56.6504,"PC2": 28.2015,"PC3": -4.17017},{"name": "HGDP00942, Yoruba","color": "#FF6600","PC1": 61.4273,"PC2": 25.309,"PC3": -4.1687},{"name": "HGDP00945, Yakut","color": "#FF99E6","PC1": -26.3675,"PC2": 26.875,"PC3": 5.59199},{"name": "HGDP00954, Yakut","color": "#FF99E6","PC1": -22.8993,"PC2": 21.1742,"PC3": 2.91018},{"name": "HGDP00956, Yakut","color": "#FF99E6","PC1": -27.618,"PC2": 19.6715,"PC3": 7.21472},{"name": "HGDP00959, Yakut","color": "#FF99E6","PC1": -25.7383,"PC2": 22.8014,"PC3": 0.124289},{"name": "HGDP00962, Yakut","color": "#FF99E6","PC1": -19.7554,"PC2": 21.1021,"PC3": 6.31407},{"name": "HGDP00964, Yakut","color": "#FF99E6","PC1": -18.7173,"PC2": 9.75395,"PC3": 9.97861},{"name": "HGDP00970, Colombian","color": "#800080","PC1": -24.3501,"PC2": 11.1803,"PC3": -56.7431},{"name": "HGDP00985, Biaka (Pygmy)","color": "#FF6600","PC1": 65.7925,"PC2": 33.3908,"PC3": -1.10427},{"name": "HGDP00992, San","color": "#FF6600","PC1": 57.8993,"PC2": 30.7705,"PC3": -4.39736},{"name": "HGDP01003, Karitiana","color": "#800080","PC1": -27.4411,"PC2": 15.7733,"PC3": -51.0652},{"name": "HGDP01010, Karitiana","color": "#800080","PC1": -28.0574,"PC2": 16.4152,"PC3": -41.3708},{"name": "HGDP01013, Karitiana","color": "#800080","PC1": -27.3801,"PC2": 15.3582,"PC3": -50.558},{"name": "HGDP01027, Melanesian","color": "#339933","PC1": -16.4086,"PC2": 20.2184,"PC3": 25.4469},{"name": "HGDP01029, San","color": "#FF6600","PC1": 62.3311,"PC2": 31.7205,"PC3": -4.54654},{"name": "HGDP01031, Bantu (South Africa)","color": "#FF6600","PC1": 64.1985,"PC2": 31.2617,"PC3": -2.73579},{"name": "HGDP01037, Pima","color": "#800080","PC1": -24.4812,"PC2": 17.7892,"PC3": -40.4262},{"name": "HGDP01051, Pima","color": "#800080","PC1": -22.0117,"PC2": 17.9003,"PC3": -41.4171},{"name": "HGDP01060, Pima","color": "#800080","PC1": -24.3737,"PC2": 14.2152,"PC3": -43.7755},{"name": "HGDP01063, Sardinian","color": "#0099E6","PC1": 2.79326,"PC2": -26.1893,"PC3": 1.56831},{"name": "HGDP01078, Sardinian","color": "#0099E6","PC1": 2.97148,"PC2": -27.7598,"PC3": 4.62599},{"name": "HGDP01081, Mbuti (Pygmy)","color": "#FF6600","PC1": 66.3254,"PC2": 30.1168,"PC3": -4.80922},{"name": "HGDP01096, Tujia","color": "#FF99E6","PC1": -21.2059,"PC2": 23.3858,"PC3": 12.9012},{"name": "HGDP01097, Tujia","color": "#FF99E6","PC1": -24.731,"PC2": 24.0192,"PC3": 13.2528},{"name": "HGDP01103, Tujia","color": "#FF99E6","PC1": -25.4746,"PC2": 25.0532,"PC3": 16.0242},{"name": "HGDP01104, Tujia","color": "#FF99E6","PC1": -22.468,"PC2": 26.3309,"PC3": 12.3009},{"name": "HGDP01153, Italian","color": "#0099E6","PC1": -1.35683,"PC2": -20.5559,"PC3": 3.53541},{"name": "HGDP01164, Tuscan","color": "#0099E6","PC1": 4.60391,"PC2": -29.7679,"PC3": -2.79963},{"name": "HGDP01172, Italian","color": "#0099E6","PC1": 1.94195,"PC2": -25.133,"PC3": 1.94927},{"name": "HGDP01174, Italian","color": "#0099E6","PC1": 7.87915,"PC2": -24.3857,"PC3": 6.09678},{"name": "HGDP01177, Italian","color": "#0099E6","PC1": 4.66049,"PC2": -28.6399,"PC3": 1.04092},{"name": "HGDP01180, Yi","color": "#FF99E6","PC1": -23.2583,"PC2": 22.9362,"PC3": 13.6525},{"name": "HGDP01182, Yi","color": "#FF99E6","PC1": -23.1335,"PC2": 23.4221,"PC3": 13.093},{"name": "HGDP01184, Yi","color": "#FF99E6","PC1": -18.1999,"PC2": 18.5359,"PC3": 13.0815},{"name": "HGDP01207, Oroqen","color": "#FF99E6","PC1": -19.8252,"PC2": 20.9728,"PC3": -0.386276},{"name": "HGDP01213, Daur","color": "#FF99E6","PC1": -26.8965,"PC2": 27.859,"PC3": 8.04234},{"name": "HGDP01216, Daur","color": "#FF99E6","PC1": -24.7681,"PC2": 20.6334,"PC3": 8.83153},{"name": "HGDP01223, Mongola","color": "#FF99E6","PC1": -21.3067,"PC2": 16.3338,"PC3": 6.20105},{"name": "HGDP01226, Mongola","color": "#FF99E6","PC1": -19.9831,"PC2": 13.5397,"PC3": 5.91591},{"name": "HGDP01227, Mongola","color": "#FF99E6","PC1": -22.9492,"PC2": 24.4778,"PC3": 7.09086},{"name": "HGDP01228, Mongola","color": "#FF99E6","PC1": -21.4116,"PC2": 19.4091,"PC3": 4.17888},{"name": "HGDP01237, Hezhen","color": "#FF99E6","PC1": -23.1688,"PC2": 21.7987,"PC3": 9.27349},{"name": "HGDP01240, Hezhen","color": "#FF99E6","PC1": -25.9823,"PC2": 22.6485,"PC3": 8.74934},{"name": "HGDP01241, Hezhen","color": "#FF99E6","PC1": -26.5986,"PC2": 27.095,"PC3": 6.04907},{"name": "HGDP01242, Hezhen","color": "#FF99E6","PC1": -23.4184,"PC2": 28.5054,"PC3": 8.27875},{"name": "HGDP01247, Xibo","color": "#FF99E6","PC1": -21.4201,"PC2": 18.1104,"PC3": 3.36244},{"name": "HGDP01255, Mozabite","color": "#DBEE06","PC1": 11.1352,"PC2": -16.5617,"PC3": 2.41534},{"name": "HGDP01269, Mozabite","color": "#DBEE06","PC1": 8.6863,"PC2": -22.4356,"PC3": 1.08579},{"name": "HGDP01272, Mozabite","color": "#DBEE06","PC1": 13.3061,"PC2": -17.1923,"PC3": 0.0367791},{"name": "HGDP01273, Mozabite","color": "#DBEE06","PC1": 18.2373,"PC2": -20.783,"PC3": 6.18037},{"name": "HGDP01283, Mandenka","color": "#FF6600","PC1": 59.4821,"PC2": 18.2403,"PC3": -1.38905},{"name": "HGDP01285, Mandenka","color": "#FF6600","PC1": 58.1974,"PC2": 25.2486,"PC3": -1.15526},{"name": "HGDP01286, Mandenka","color": "#FF6600","PC1": 56.672,"PC2": 26.1784,"PC3": -1.52126},{"name": "HGDP01287, Han (North China)","color": "#FF99E6","PC1": -22.7587,"PC2": 24.6601,"PC3": 10.0086},{"name": "HGDP01290, Han (North China)","color": "#FF99E6","PC1": -24.8392,"PC2": 16.0578,"PC3": 12.3025},{"name": "HGDP01302, Uygur","color": "#F90026","PC1": -14.0312,"PC2": 3.52607,"PC3": 2.04532},{"name": "HGDP01312, Dai","color": "#FF99E6","PC1": -25.6948,"PC2": 25.6322,"PC3": 7.90128},{"name": "HGDP01318, Lahu","color": "#FF99E6","PC1": -22.7769,"PC2": 22.9404,"PC3": 12.7264},{"name": "HGDP01321, Lahu","color": "#FF99E6","PC1": -21.54,"PC2": 25.9473,"PC3": 13.6095},{"name": "HGDP01322, Lahu","color": "#FF99E6","PC1": -21.5477,"PC2": 25.3952,"PC3": 9.44702},{"name": "HGDP01323, Lahu","color": "#FF99E6","PC1": -22.9456,"PC2": 24.9376,"PC3": 13.9559},{"name": "HGDP01332, She","color": "#FF99E6","PC1": -24.2588,"PC2": 20.2995,"PC3": 13.1456},{"name": "HGDP01337, Naxi","color": "#FF99E6","PC1": -25.0193,"PC2": 22.8108,"PC3": 8.74836},{"name": "HGDP01339, Naxi","color": "#FF99E6","PC1": -23.8734,"PC2": 27.3331,"PC3": 12.1417},{"name": "HGDP01347, Tu","color": "#FF99E6","PC1": -22.7254,"PC2": 22.2831,"PC3": 13.6998},{"name": "HGDP01348, Tu","color": "#FF99E6","PC1": -19.6844,"PC2": 19.2291,"PC3": 7.11364},{"name": "HGDP01349, Tu","color": "#FF99E6","PC1": -20.0559,"PC2": 14.1594,"PC3": 5.77804},{"name": "HGDP01356, Tu","color": "#FF99E6","PC1": -21.4926,"PC2": 15.0129,"PC3": 11.2594},{"name": "HGDP01358, Basque","color": "#0099E6","PC1": 1.89218,"PC2": -26.3433,"PC3": -0.641277},{"name": "HGDP01361, Basque","color": "#0099E6","PC1": -0.13582,"PC2": -23.3992,"PC3": 2.69103},{"name": "HGDP01362, Basque","color": "#0099E6","PC1": 1.95819,"PC2": -28.4259,"PC3": -4.51918},{"name": "HGDP01363, Basque","color": "#0099E6","PC1": -3.32425,"PC2": -25.1414,"PC3": 0.859517},{"name": "HGDP01366, Basque","color": "#0099E6","PC1": 0.758348,"PC2": -31.4405,"PC3": 2.78137},{"name": "HGDP01367, Basque","color": "#0099E6","PC1": 2.8254,"PC2": -25.9526,"PC3": 3.24203},{"name": "HGDP01368, Basque","color": "#0099E6","PC1": -3.18603,"PC2": -23.8928,"PC3": 1.15679},{"name": "HGDP01371, Basque","color": "#0099E6","PC1": 3.18276,"PC2": -24.6626,"PC3": 3.39263},{"name": "HGDP01373, Basque","color": "#0099E6","PC1": -0.140283,"PC2": -29.5768,"PC3": -1.57357},{"name": "HGDP01380, Basque","color": "#0099E6","PC1": -0.69741,"PC2": -22.4049,"PC3": 0.576892},{"name": "HGDP01384, Adygei","color": "#0099E6","PC1": 1.00196,"PC2": -22.9156,"PC3": 1.71492},{"name": "HGDP01388, Adygei","color": "#0099E6","PC1": -2.04307,"PC2": -22.1037,"PC3": 4.34687},{"name": "HGDP01402, Adygei","color": "#0099E6","PC1": 3.37864,"PC2": -22.3373,"PC3": -2.53198},{"name": "HGDP01403, Adygei","color": "#0099E6","PC1": 1.37374,"PC2": -25.7499,"PC3": -0.405505},{"name": "HGDP01405, Bantu (Kenya)","color": "#FF6600","PC1": 61.6434,"PC2": 24.6491,"PC3": -1.97079},{"name": "HGDP01418, Bantu (Kenya)","color": "#FF6600","PC1": 62.5707,"PC2": 27.3197,"PC3": -4.79006},{"name": "HGDP01419, Bantu (Kenya)","color": "#FF6600","PC1": 56.7418,"PC2": 23.4393,"PC3": -0.719049},{"name": "HGDP01024, Han","color": "#FF99E6","PC1": -24.9574,"PC2": 22.289,"PC3": 7.73394},{"name": "HGDP00719, Cambodian","color": "#FF99E6","PC1": -22.0312,"PC2": 23.3648,"PC3": 14.9441},{"name": "HGDP00516, French","color": "#0099E6","PC1": 1.85658,"PC2": -27.1559,"PC3": 0.349421},{"name": "HGDP01354, Tu","color": "#FF99E6","PC1": -25.4331,"PC2": 22.2865,"PC3": 9.76845},{"name": "HGDP01070, Sardinian","color": "#0099E6","PC1": 3.71275,"PC2": -24.7976,"PC3": 1.71568},{"name": "NA19238","color": "#000000","PC1": 56.8158,"PC2": 26.6584,"PC3": -1.50355},{"name": "NA12892","color": "#000000","PC1": 6.95456,"PC2": -22.4259,"PC3": -0.796774},{"name": "NA12891","color": "#000000","PC1": -6.4415,"PC2": -25.1952,"PC3": -8.66119},{"name": "NA12878","color": "#000000","PC1": 3.38204,"PC2": -28.8412,"PC3": -6.02145},{"name": "NA19239","color": "#000000","PC1": 58.4073,"PC2": 25.9987,"PC3": -10.8026},{"name": "NA19240","color": "#000000","PC1": 64.3604,"PC2": 33.8159,"PC3": -3.26377}];
     </script>
     <script>
@@ -89,7 +135,7 @@
         var model = new DataModel(data_orig, labels, legend);
         
         var config = {
-            canvasId: "#pca_canvas",
+            canvasId: "#pcacanvas",
             nameAttribute: "name",
             groupAttribute: "color",
             colorAttribute: "color",
@@ -218,70 +264,99 @@
         }
         
         function addPieChart(parentDiv, radius) {
-            var svg = parentDiv.append("svg")
+            var piesvgDiv = parentDiv.append("div").attr("id", "piesvg");
+            
+            var svg = piesvgDiv.append("svg")
                         .attr("id", "piechart_svg")
-                        .attr("width", radius * 2)
-                        .attr("height", radius * 2);
+                        .attr("width", 1.2 * radius * 2)
+                        .attr("height", 1.2 * radius * 2);
             
             var g = svg.append("g")
-                        .attr("transform", "translate(" + radius + ", " + radius + ")");
+                        .attr("transform", "translate(" + (1.2 * radius) + ", " + (1.2 * radius) + ")");
             
-            var counts = new Map();
+            var counts = {};
 
             for (var i = 0; i < model.nearestActiveNeighbors.length; i++) {
                 var element = model.activeElements[model.nearestActiveNeighbors[i]];
-                var count = counts.get(model.data[element][config.colorAttribute]);
-                if (count) {
-                    counts.set(model.data[element][config.colorAttribute], count + 1);
+                var count = 0;
+                if (counts.hasOwnProperty(model.data[element][config.colorAttribute])) {
+                    counts[model.data[element][config.colorAttribute]].total += 1;
                 } else {
-                    counts.set(model.data[element][config.colorAttribute], 1);
+                    counts[model.data[element][config.colorAttribute]] = {};
+                    counts[model.data[element][config.colorAttribute]].name = colors[model.data[element][config.colorAttribute]];
+                    counts[model.data[element][config.colorAttribute]].color = model.data[element][config.colorAttribute];
+                    counts[model.data[element][config.colorAttribute]].total = 1;
+                    counts[model.data[element][config.colorAttribute]].subgroups = {};
                 }
+                
+                subgroup = model.data[element][config.nameAttribute].split(',', 2).map(function(value, index, array) { return value.trim(); })[1];
+                if (counts[model.data[element][config.colorAttribute]].subgroups.hasOwnProperty(subgroup)) {
+                    counts[model.data[element][config.colorAttribute]].subgroups[subgroup] += 1;
+                } else {
+                    counts[model.data[element][config.colorAttribute]].subgroups[subgroup] = 1;
+                }
+            }
+            
+            var countsArray = [];
+            for (var group in counts) {
+                countsArray.push(counts[group]);
             }
                             
             var pie = d3.layout.pie().value(function(d) {
-                return d[1]; 
+                return d.total; 
             });
             
             var arc = d3.svg.arc().outerRadius(radius);
                 //.innerRadius(radius / 1.5);
+            var arcOver = d3.svg.arc().outerRadius(1.2 * radius);
             
             var path = g.selectAll('path')
-                .data(pie(Array.from(counts)))
+                .data(pie(countsArray))
                 .enter()
                 .append('path')
                 .attr('d', arc)
-                .attr('fill', function(d, i) { 
-                    return d.data[0];
+                .attr('fill', function(d, i) {
+                    return d.data.color;
+                })
+                .on("mouseover", function(d) {
+                    d3.select(this).transition().duration(500).attr("d", arcOver);
+
+                    var table = parentDiv.append("div")
+                        .attr("id", "pielegend").attr("class", "panel panel-default")
+                       // .append("div").attr("class", "panel-body")
+                        .append("table").attr("class", "table table-striped small");
+                    
+                    var row = table.append("tr").style("font-weight", "bold");
+                    row.append("td").text(d.data.name);
+                    row.append("td").text(d.data.total);
+                    
+                    for (var subgroup in d.data.subgroups) {
+                        row = table.append("tr");
+                        row.append("td").text(subgroup);
+                        row.append("td").text(d.data.subgroups[subgroup]);
+                    }
+                    
+                })
+                .on("mouseout", function(d) {
+                    d3.select(this).transition().duration(500).attr("d", arc);
+                    d3.select("#pielegend").remove();
                 });
         }
-        
-        function removePieChart() {
-            d3.select("#piechart_svg").remove();
-        }
                 
-        var plotDiv = d3.select("body").append("div")
-            .attr("id", "plot");
-        var legendDiv = plotDiv.append("div")
-            .attr("id", "legend");
-        var controlsDiv = plotDiv.append("div")
-            .attr("id", "controls");
-        var piechartDiv = plotDiv.append("div")
-            .attr("id", "piechart");
-        var piechartControlsDiv = piechartDiv.append("div")
-            .style("position", "absolute")
-            .style("width", "500px")
-            .style("left", "0px");
-        var piechartPlotDiv = piechartDiv.append("div")
-            .style("position", "absolute")
-            .style("left", "500px");
+        var pcaplotDiv = d3.select("body").append("div").attr("id", "pcaplot");
+        var pcalegendDiv = pcaplotDiv.append("div").attr("id", "pcalegend");
+        var pcacontrolsDiv = pcaplotDiv.append("div").attr("id", "pcacontrols");
+        var canvas = pcaplotDiv.append("canvas").attr("id", "pcacanvas").attr("width", width).attr("height", height).node();
 
-        var canvas = plotDiv.append("canvas")
-            .attr("id", "pca_canvas")
-            .attr("width", width)
-            .attr("height", height).node();
+        var pieplotDiv = d3.select("body").append("div").attr("id", "pieplot");
+        var pielabelDiv = pieplotDiv.append("div").attr("id", "pielabel").append("h4").text("Ancestry composition of nearest neighbors");
+        var pieformDiv = pieplotDiv.append("div").attr("id", "pieform").style("display", "none");
+        var piealertDiv = pieplotDiv.append("div").attr("id", "piealert").attr("class", "alert alert-info text-center").text("Select sample by clicking on point in PCA plot.");
+        var piecontrolsDiv = pieformDiv.append("div").attr("id", "piecontrols");
+        piecontrolsDiv.append("h4").attr("id", "pieselected").text("");
         
         /* BEGIN: 2D/3D switch control */
-        addSwitchControl(controlsDiv, "3D", false, function() {
+        addSwitchControl(pcacontrolsDiv, "3D", false, function() {
             animating = false;
             switch_mode(true);
             animating = true;
@@ -296,7 +371,7 @@
         /* END: 2D/3D switch control */
         
         /* BEGIN: Grid on/off control */
-        addSwitchControl(controlsDiv, "Grid", true, function() {
+        addSwitchControl(pcacontrolsDiv, "Grid", true, function() {
             gl.enableGrid();
         }, 
         function() {
@@ -305,33 +380,29 @@
         /* END: Grid on/off control */
         
         /* BEGIN: Axes */
-        addAxisControl(controlsDiv, labels, "X", "X", config.xAttribute, function() {
+        addAxisControl(pcacontrolsDiv, labels, "X", "X", config.xAttribute, function() {
             var attribute = d3.select("#X").select("button").datum();
             gl.setXCoordinateAttr(attribute);
         });
         
-        addAxisControl(controlsDiv, labels, "Y", "Y", config.yAttribute, function() {
+        addAxisControl(pcacontrolsDiv, labels, "Y", "Y", config.yAttribute, function() {
             var attribute = d3.select("#Y").select("button").datum();
             gl.setYCoordinateAttr(attribute);
         });
         /* BEGIN: End */
         
         /* BEGIN: Piechart */
-        piechartControlsDiv.append("h3")
-            .attr("id", "pielabel")
-            .text("Selected: None");
-        
-        addSliderControl(piechartControlsDiv, "pc", "Principal components", 1, labels.length, model.getMaxDimensions(), function(value) {
+        addSliderControl(piecontrolsDiv, "pc", "Principal components", 1, labels.length, model.getMaxDimensions(), function(value) {
             model.setMaxDimensions(value);
         });
         
-        addSliderControl(piechartControlsDiv, "k", "K nearest neighbors", 0, model.activeNeighbors.length, model.nearestActiveNeighbors.length, function(value) {
+        addSliderControl(piecontrolsDiv, "k", "K nearest neighbors", 0, model.activeNeighbors.length, model.nearestActiveNeighbors.length, function(value) {
             model.setKNearestNeighbors(value);
         });
         /* END: Piechart */
         
         /* BEGIN:  Legend */
-        btnGroup = legendDiv.append("div")
+        btnGroup = pcalegendDiv.append("div")
             .attr("class", "btn-group-vertical")
             .attr("role", "group");
         
@@ -374,7 +445,7 @@
             gl.deactivate();
             if (mode_3d) {
                 gl = new pca3d(model, config);
-                addAxisControl(controlsDiv, labels, "Z", "Z", config.zAttribute, function() {
+                addAxisControl(pcacontrolsDiv, labels, "Z", "Z", config.zAttribute, function() {
                     var attribute = d3.select("#Z").select("button").datum();
                     gl.setZCoordinateAttr(attribute);
                 });
@@ -385,7 +456,7 @@
             gl.initialize();
         }
         
-        model.addListener("piechart", function(dataChanged, selectionChanged, neighborsChanged) {
+        model.addListener("pieplot", function(dataChanged, selectionChanged, neighborsChanged) {
             if (dataChanged) {                
                 var value = d3.select("#k").select("input").node().value;
                 var k = model.getKNearestNeighbors();
@@ -393,11 +464,9 @@
                 d3.select("#k").select("input").attr("max", model.activeNeighbors.length);
                 
                 if (value > model.activeNeighbors.length) {
-                    console.log("here1 " + model.activeNeighbors.length);
                     d3.select("#k").select("input").node().value = model.activeNeighbors.length;
                     d3.select(d3.select("#k").select("li").node().nextSibling).text(model.activeNeighbors.length);
                 } else if (value < k) {
-                    console.log("here2 " + k);
                     d3.select("#k").select("input").node().value = k;
                     d3.select(d3.select("#k").select("li").node().nextSibling).text(k);                   
                 }   
@@ -406,16 +475,21 @@
             if (selectionChanged) {
                 var selected = model.getSelectedElement();
                 if (selected) {
-                    d3.select("#pielabel").text(model.data[selected].name);
+                    d3.select("#pieselected").text(model.data[selected].name.split(',', 1));
+                    d3.select("#piealert").style("display", "none");
+                    d3.select("#pieform").style("display", "block");
                 } else {
-                    d3.select("#pielabel").text("Selected: None");
+                    d3.select("#pieselected").text("");
+                    d3.select("#pieform").style("display", "none");
+                    d3.select("#piealert").style("display", "block");
+                    
                 }
             }
             
             if (neighborsChanged) {
-                removePieChart();
+                d3.select("#piesvg").remove();
                 if (model.nearestActiveNeighbors.length > 0) {
-                    addPieChart(piechartPlotDiv, 80);
+                    addPieChart(pieformDiv, 80);
                 }
             }
         });

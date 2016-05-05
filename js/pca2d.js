@@ -372,7 +372,7 @@ var pca2d = (function (model, config) {
     
     // Draw square for point selection
     var drawSelection = function() {
-        var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 2});
+        var material = new THREE.LineBasicMaterial({color: 0x555555, linewidth: 2});
         var geometry = new THREE.Geometry();
         
         geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0));
@@ -394,7 +394,7 @@ var pca2d = (function (model, config) {
         if (model.nearestActiveNeighbors.length > 0) {
             var selected = model.getSelectedActiveElement();
 
-            var material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
+            var material = new THREE.LineBasicMaterial({color: 0x555555, linewidth: 1});
             var geometry = new THREE.Geometry();
             
             var x0 = particles.geometry.vertices[selected].x;
