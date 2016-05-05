@@ -1,9 +1,8 @@
-var pca2d = (function (data, config) {
+var pca2d = (function (model, config) {
     
     var canvas = d3.select(config.canvasId).node();
     var originalCanvasWidth = canvas.width;
     var originalCanvasHeight = canvas.height;
-
     
     // Bounding rectangle for data
     var dataBoundingRectangle = {
@@ -59,6 +58,8 @@ var pca2d = (function (data, config) {
     var controls = null;
     var particles = null;
     var grid = null;
+    var selection = null;
+    var neighbors = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -80,8 +81,6 @@ var pca2d = (function (data, config) {
     // Currently highlighted object ID
     var highlighted = null;
     
-    var lookupTable = new Map();
-    
     var circle = new THREE.TextureLoader().load("textures/circle.png");
                 
     // Calculate bouding rectangle for data
@@ -91,9 +90,9 @@ var pca2d = (function (data, config) {
         dataBoundingRectangle.maxX = 0;
         dataBoundingRectangle.maxY = 0;
             
-        for (var i = 0; i < data.length; i++) {
-            x = data[i][xDimName];
-            y = data[i][yDimName];
+        for (var i = 0; i < model.data.length; i++) {
+            x = model.data[i][xDimName];
+            y = model.data[i][yDimName];
             if (x > dataBoundingRectangle.maxX) { dataBoundingRectangle.maxX = x; }
             if (x < dataBoundingRectangle.minX) { dataBoundingRectangle.minX = x; }
             if (y > dataBoundingRectangle.maxY) { dataBoundingRectangle.maxY = y; }
@@ -220,6 +219,21 @@ var pca2d = (function (data, config) {
         label.sprite.material.map.needsUpdate = true;
     };
     
+    // Update tick labels
+    var updateTickLabels = function() {
+        var cx = dataViewSquare.centerX + cameraData.position.x;
+        var cy = dataViewSquare.centerY + cameraData.position.y;
+        var minx = cx + (dataViewSquare.minX - dataViewSquare.centerX) / cameraData.zoom;
+        var maxx = cx + (dataViewSquare.maxX - dataViewSquare.centerX) / cameraData.zoom;
+        var miny = cy + (dataViewSquare.minY - dataViewSquare.centerY) / cameraData.zoom;
+        var maxy = cy + (dataViewSquare.maxY - dataViewSquare.centerY) / cameraData.zoom;
+
+        updateLabel(labelTickMinX, getTickXLabel(axesViewSquare.xAxis.start.x, minx, maxx));
+        updateLabel(labelTickMaxX, getTickXLabel(axesViewSquare.xAxis.end.x, minx, maxx));
+        updateLabel(labelTickMinY, getTickYLabel(axesViewSquare.yAxis.start.y, miny, maxy));
+        updateLabel(labelTickMaxY, getTickYLabel(axesViewSquare.yAxis.end.y, miny, maxy));
+    }
+    
     // Get X axis tick label at tick_position
     var getTickXLabel = function(tick_position, data_view_minX, data_view_maxX) {
         var unit = (data_view_maxX - data_view_minX) / axesViewSquare.sideSize;
@@ -299,21 +313,6 @@ var pca2d = (function (data, config) {
         sceneAxes.add(labelY.sprite);
     };
     
-    // Update tick labels
-    var updateTickLabels = function() {
-        var cx = dataViewSquare.centerX + cameraData.position.x;
-        var cy = dataViewSquare.centerY + cameraData.position.y;
-        var minx = cx + (dataViewSquare.minX - dataViewSquare.centerX) / cameraData.zoom;
-        var maxx = cx + (dataViewSquare.maxX - dataViewSquare.centerX) / cameraData.zoom;
-        var miny = cy + (dataViewSquare.minY - dataViewSquare.centerY) / cameraData.zoom;
-        var maxy = cy + (dataViewSquare.maxY - dataViewSquare.centerY) / cameraData.zoom;
-
-        updateLabel(labelTickMinX, getTickXLabel(axesViewSquare.xAxis.start.x, minx, maxx));
-        updateLabel(labelTickMaxX, getTickXLabel(axesViewSquare.xAxis.end.x, minx, maxx));
-        updateLabel(labelTickMinY, getTickYLabel(axesViewSquare.yAxis.start.y, miny, maxy));
-        updateLabel(labelTickMaxY, getTickYLabel(axesViewSquare.yAxis.end.y, miny, maxy));
-    }
-    
     // Draw data
     var drawData = function() {
         var geometry = new THREE.Geometry();
@@ -328,24 +327,18 @@ var pca2d = (function (data, config) {
             vertexColors: THREE.VertexColors
         });
         
-//        material.alphaTest = 0.5;
         material.depthWrite = false;
-                    
-        lookupTable.clear();
           
         if (particles) {
             sceneData.remove(particles);
         }
-            
-        for (var i = 0, j = 0; i < data.length; i++) {
-            if (config.groups.has(data[i][config.groupAttribute])) {
-                geometry.vertices.push(new THREE.Vector3(data[i][config.xAttribute], data[i][config.yAttribute], 0));
-                geometry.colors.push(new THREE.Color(data[i][config.colorAttribute]));
-                lookupTable.set(j, i);
-                j++;
-            }
+
+        for (var j = 0; j < model.activeElements.length; j++) {
+            var i = model.activeElements[j];
+            geometry.vertices.push(new THREE.Vector3(model.data[i][config.xAttribute], model.data[i][config.yAttribute], 0));
+            geometry.colors.push(new THREE.Color(model.data[i][config.colorAttribute]));
         }
-                
+        
         particles = new THREE.Points(geometry, material);
         sceneData.add(particles);
     };
@@ -377,6 +370,50 @@ var pca2d = (function (data, config) {
         }
     };
     
+    // Draw square for point selection
+    var drawSelection = function() {
+        var material = new THREE.LineBasicMaterial({color: 0x555555, linewidth: 2});
+        var geometry = new THREE.Geometry();
+        
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(0.5, -0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(0.5, 0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, 0));
+        geometry.vertices.push(new THREE.Vector3(-0.5, -0.5, 0));
+            
+        selection = new THREE.Line(geometry, material);
+    };
+    
+    // Draw neighbors
+    var drawNeighbors = function() {
+        if (neighbors) {
+            sceneData.remove(neighbors);
+            neighbors = null;
+        }
+        
+        if (model.nearestActiveNeighbors.length > 0) {
+            var selected = model.getSelectedActiveElement();
+
+            var material = new THREE.LineBasicMaterial({color: 0x555555, linewidth: 1});
+            var geometry = new THREE.Geometry();
+            
+            var x0 = particles.geometry.vertices[selected].x;
+            var y0 = particles.geometry.vertices[selected].y;
+            var x = 0;
+            var y = 0;
+            
+            for (var i = 0; i < model.nearestActiveNeighbors.length; i++) {
+                x = particles.geometry.vertices[model.nearestActiveNeighbors[i]].x;
+                y = particles.geometry.vertices[model.nearestActiveNeighbors[i]].y;
+                geometry.vertices.push(new THREE.Vector3(x0, y0, 0));
+                geometry.vertices.push(new THREE.Vector3(x, y, 0));
+            }
+            
+            neighbors = new THREE.LineSegments(geometry, material);
+            sceneData.add(neighbors);
+        }
+    }
+    
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {
         var boundingClientRect = canvas.getBoundingClientRect();
@@ -386,6 +423,30 @@ var pca2d = (function (data, config) {
         mouse2d.y = (-(d3.event.y - boundingClientRect.top) / canvas.height) * 2 * window.devicePixelRatio + 1;
     };
     
+    // On mouse click inside canvas
+    var onMouseClickInsideCanvas = function() {
+        if (picked) {
+            var selected = model.getSelectedActiveElement();
+            if (picked != selected) {
+                model.selectActiveElement(picked);
+            } else {
+                model.selectActiveElement(null);
+            }
+        }
+    };
+    
+    // Change selected object
+    var changeSelection = function(selected) {
+        selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+    }
+    
+    // Rescale selection shape
+    var rescaleSelection = function() {
+        var normalizedSize = (dataViewSquare.sideSize / canvas.width) * 10 * window.devicePixelRatio;
+        var size = normalizedSize / cameraData.zoom;
+        selection.scale.set(size, size, size);
+    }
+        
     // Find 3D object under mouse pointer
     var updatePicked = function() {
         raycaster.setFromCamera(mouse2d, cameraData);
@@ -401,7 +462,7 @@ var pca2d = (function (data, config) {
     var highlightPicked = function() {
         if (picked != highlighted) {
             if (highlighted != null) {
-                particles.geometry.colors[highlighted] = new THREE.Color(data[lookupTable.get(highlighted)][config.colorAttribute]);
+                particles.geometry.colors[highlighted] = new THREE.Color(model.data[model.getElement(highlighted)][config.colorAttribute]);
             }
             if (picked != null) {
                 particles.geometry.colors[picked] = new THREE.Color(0xff00ff);
@@ -414,6 +475,8 @@ var pca2d = (function (data, config) {
     // Create/remove tooltip
     var updateTooltip = function() {
         if (picked != tooltip) {
+            var element = model.getElement(picked);
+            
             d3.select("#tooltip").remove();
             if (picked != null) {
                 var coordinate = mouse;
@@ -421,9 +484,9 @@ var pca2d = (function (data, config) {
                     .attr("id", "tooltip")
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
-                    .html(data[lookupTable.get(picked)][config.nameAttribute] +
-                              "</br>" + config.xAttribute + "=" + data[lookupTable.get(picked)][config.xAttribute] +
-                              "</br>" + config.yAttribute + "=" + data[lookupTable.get(picked)][config.yAttribute]);
+                    .html(model.data[element][config.nameAttribute] +
+                              "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] +
+                              "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute]);
             }
             tooltip = picked;
         }
@@ -470,6 +533,7 @@ var pca2d = (function (data, config) {
         controls.addEventListener('change', render);
         
         d3.select(config.canvasId).on("mousemove", onMouseMoveInsideCanvas);
+        d3.select(config.canvasId).on("click", onMouseClickInsideCanvas);
     };
     
     // Initialize view
@@ -477,6 +541,14 @@ var pca2d = (function (data, config) {
         drawData();
         drawGrid();
         drawAxes();
+        drawSelection();
+        
+        var selected = model.getSelectedActiveElement();
+        if (selected) {
+            changeSelection(selected);
+            sceneData.add(selection);
+            drawNeighbors();
+        }
     };
     
     this.initialize = function() {
@@ -490,6 +562,7 @@ var pca2d = (function (data, config) {
         highlightPicked();
         updateTooltip();
         updateTickLabels();
+        rescaleSelection();
         
         renderer.clear();
         renderer.render(sceneGrid, cameraGrid);
@@ -497,11 +570,31 @@ var pca2d = (function (data, config) {
         renderer.render(sceneData, cameraData);
         renderer.clearDepth();
         renderer.render(sceneAxes, cameraAxes);
-        
     };
     
-    this.updateData = function() {
+    var updateView = function() {
+        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
+        calculateDataViewSquare();
+        
+        cameraData.zoom = 1;
+        cameraData.left = dataViewSquare.minX;
+        cameraData.right = dataViewSquare.maxX;
+        cameraData.top = dataViewSquare.maxY;
+        cameraData.bottom = dataViewSquare.minY;
+        cameraData.near = 0;
+        cameraData.far = 100;
+        cameraData.position.set(0, 0, 100);
+        cameraData.updateProjectionMatrix();
+        
+        controls.target.set(0, 0, 0);
+        
         drawData();
+        
+        var selected = model.getSelectedActiveElement();
+        if (selected) {
+            changeSelection(selected);
+            drawNeighbors();
+        }
     }
     
     this.draw = function() {
@@ -511,53 +604,21 @@ var pca2d = (function (data, config) {
         
     this.setXCoordinateAttr = function (name) {
         config.xAttribute = name;
-        
-        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
-        calculateDataViewSquare();
-        
-        cameraData.zoom = 1;
-        cameraData.left = dataViewSquare.minX;
-        cameraData.right = dataViewSquare.maxX;
-        cameraData.top = dataViewSquare.maxY;
-        cameraData.bottom = dataViewSquare.minY;
-        cameraData.near = 0;
-        cameraData.far = 100;
-        cameraData.position.set(0, 0, 100);
-        cameraData.updateProjectionMatrix();
-        
+        updateView();
         updateLabel(labelX, name);
     }; 
     
     this.setYCoordinateAttr = function (name) {
         config.yAttribute = name;
-        
-        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
-        calculateDataViewSquare();
-        
-        cameraData.zoom = 1;
-        cameraData.left = dataViewSquare.minX;
-        cameraData.right = dataViewSquare.maxX;
-        cameraData.top = dataViewSquare.maxY;
-        cameraData.bottom = dataViewSquare.minY;
-        cameraData.near = 0;
-        cameraData.far = 100;
-        cameraData.position.set(0, 0, 100);
-        cameraData.updateProjectionMatrix();
-        
+        updateView();
         updateLabel(labelY, name);
-    };
-
-    this.getDataBoundingRectangle = function() {
-        return dataBoundingRectangle;  
-    };
-    
-    this.getDataViewSquare = function() {
-        return dataViewSquare;  
     };
     
     this.deactivate = function() {
+        model.removeListener("pca2d");
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
+        d3.select(config.canvasId).on("click", null);
         d3.select(config.canvasId)
             .attr("width", originalCanvasWidth)
             .attr("height", originalCanvasHeight);
@@ -584,4 +645,22 @@ var pca2d = (function (data, config) {
     calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
     calculateDataViewSquare();
     
+    model.addListener("pca2d", function(dataChanged, selectionChanged, neighborsChanged) {
+        if (dataChanged) {
+            drawData();
+        }
+        
+        if (selectionChanged) {
+            var selected = model.getSelectedActiveElement();
+            sceneData.remove(selection);   
+            if (selected) {
+                changeSelection(selected);
+                sceneData.add(selection);
+            }
+        }
+        
+        if (neighborsChanged) {
+            drawNeighbors();
+        }
+    });
 });
