@@ -432,10 +432,10 @@
             
             btn.on("click", function(d, i) {
                 if (model.isGroupActive(d["name"])) {
-                    d3.select(this).select("circle").style("fill", "ffffff");
+                    d3.select(this).style("opacity", "0.3");
                     model.deactivateGroup(d["name"]);
                 } else {
-                    d3.select(this).select("circle").style("fill", d["color"]);
+                    d3.select(this).style("opacity", "1.0");
                     model.activateGroup(d["name"]);
                 }            
             });
