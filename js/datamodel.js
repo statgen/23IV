@@ -178,8 +178,8 @@ var DataModel = (function (data, dimensionNames, groups, studyGroups) {
         
         if (k < 0) {
             k = 0;
-        } else if (k > this.activeElements.length) {
-            kNearestNeighbors = this.activeElements.length;
+        } else if (k >= this.activeElements.length) {
+            kNearestNeighbors = this.activeElements.length - 1;
         } else {
             kNearestNeighbors = k;
         }
