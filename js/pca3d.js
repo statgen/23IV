@@ -538,6 +538,10 @@ var pca3d = (function (model, config) {
         var width = 2 * Math.tan(vFOV / 2) * distance;
         var scale = (width / canvas.width) * 10 * window.devicePixelRatio;
         selection.scale.set(scale, scale, scale);
+        
+//        labelX.sprite.scale.set(scale * 10, scale * 10, 0);
+//        labelY.sprite.scale.set(scale * 10, scale * 10, 0);
+//        labelZ.sprite.scale.set(scale * 10, scale * 10, 0);
     }
     
     // Find 3D object under mouse pointer
@@ -578,6 +582,7 @@ var pca3d = (function (model, config) {
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
                     .html(model.data[element][config.nameAttribute] + 
+                        "</br>" + model.data[element][config.groupAttribute] + " (" + model.data[element][config.subgroupAttribute] + ")" +
                           "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] + 
                           "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute] + 
                           "</br>" + config.zAttribute + "=" + model.data[element][config.zAttribute]);
@@ -589,8 +594,8 @@ var pca3d = (function (model, config) {
     // Initialize GL
     var initializeGL = function() {
         sceneData = new THREE.Scene();
-        
-        cameraData = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, 1000);
+        console.log(dataViewCube);
+        cameraData = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, dataViewCube.sideSize * 20);
         cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
                         
         renderer = new THREE.WebGLRenderer({

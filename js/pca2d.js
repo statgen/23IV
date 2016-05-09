@@ -484,7 +484,8 @@ var pca2d = (function (model, config) {
                     .attr("id", "tooltip")
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
-                    .html(model.data[element][config.nameAttribute] +
+                    .html(model.data[element][config.nameAttribute] + 
+                          "</br>" + model.data[element][config.groupAttribute] + " (" + model.data[element][config.subgroupAttribute] + ")" +
                               "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] +
                               "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute]);
             }
