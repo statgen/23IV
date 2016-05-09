@@ -19,12 +19,14 @@
         #pcalegend {
             position: absolute;
             top: 15%;
+            width: 200px;
             right: 0px;
         }
     
         #pcacontrols {
             position: absolute;
             top: 15%;
+            width: 100px;
             left: 0px;
         }
         
@@ -33,7 +35,7 @@
             border: 1px solid #ffffff;
             position: absolute;
             top: 0px;
-            right: 150px;
+            left: 100px;
             z-index: 1;
         }
         
@@ -404,11 +406,66 @@
         /* END: Piechart */
         
         /* BEGIN:  Legend */
-        btnGroup = pcalegendDiv.append("div")
+        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px");
+        
+        dl.append("dt").text("Reference");
+        
+        btnGroup = dl.append("div")
             .attr("class", "btn-group-vertical")
             .attr("role", "group");
         
         groups.forEach(function(row, index) {
+            if (studyGroups.indexOf(row["name"]) >= 0) {
+                return;
+            }
+            
+            var btn = btnGroup.append("button")
+                        .attr("type", "button")
+                        .attr("class", "btn btn-default btn-sm")
+                        .datum(row);
+                
+            btn.append("span")
+                .attr("class", "pull-left")
+                .append("svg")
+                    .attr("width", 18)
+                    .attr("height", 18)
+                    .append("circle")
+                        .datum(function(d) {return d.color;})
+                        .attr("cx", 9)
+                        .attr("cy", 9)
+                        .attr("r", 4)
+                        .style("stroke", "black")
+                        .style("stroke-width", 1.0)
+                        .style("fill", function(d) {return d;});
+            
+            btn.append("span").attr("class", "pull-left").text(function(d) {return d.name;});
+            
+            btn.on("click", function(d, i) {
+                if (model.isGroupActive(d["name"])) {
+                    d3.select(this).style("opacity", "0.3");
+                    model.deactivateGroup(d["name"]);
+                } else {
+                    d3.select(this).style("opacity", "1.0");
+                    model.activateGroup(d["name"]);
+                }            
+            });
+            
+        });
+        
+        
+        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("right", "0px");
+        
+        dl.append("dt").text("Study");
+        
+        btnGroup = dl.append("div")
+            .attr("class", "btn-group-vertical")
+            .attr("role", "group");
+        
+            groups.forEach(function(row, index) {
+            if (studyGroups.indexOf(row["name"]) < 0) {
+                return;
+            }
+            
             var btn = btnGroup.append("button")
                         .attr("type", "button")
                         .attr("class", "btn btn-default btn-sm")
@@ -491,7 +548,7 @@
             if (neighborsChanged) {
                 d3.select("#piesvg").remove();
                 if (model.nearestActiveNeighbors.length > 0) {
-                    addPieChart(pieformDiv, 80);
+                    addPieChart(pieformDiv, 70);
                 }
             }
         });
