@@ -180,7 +180,7 @@ var pca3d = (function (model, config) {
         });
             
         var sprite = new THREE.Sprite(material);
-        sprite.scale.set(40, 20, 1);
+//        sprite.scale.set(40, 20, 1);
         
         return {
             cwidth: canvas.width,
@@ -192,7 +192,8 @@ var pca3d = (function (model, config) {
             valign: valign,
             halign: halign,
             fontface: fontface,
-            fontsize: fontsize
+            fontsize: fontsize,
+            textWidth: textWidth
         };
     };  
     
@@ -321,12 +322,12 @@ var pca3d = (function (model, config) {
             sceneData.remove(labelTickMaxZ.sprite);
         }
         
-        labelTickMinX = createLabel("" + dataViewCube.minX, "Arial", 24, "bottom", "");
-        labelTickMaxX = createLabel("" + dataViewCube.maxX, "Arial", 24, "bottom", "");
-        labelTickMinY = createLabel("" + dataViewCube.minY, "Arial", 24, "bottom", "");
-        labelTickMaxY = createLabel("" + dataViewCube.maxY, "Arial", 24, "bottom", "");
-        labelTickMinZ = createLabel("" + dataViewCube.minZ, "Arial", 24, "bottom", "");
-        labelTickMaxZ = createLabel("" + dataViewCube.maxZ, "Arial", 24, "bottom", "");
+        labelTickMinX = createLabel("" + dataViewCube.minX, "Arial", 24, "bottom", "right");
+        labelTickMaxX = createLabel("" + dataViewCube.maxX, "Arial", 24, "bottom", "left");
+        labelTickMinY = createLabel("" + dataViewCube.minY, "Arial", 24, "top", "left");
+        labelTickMaxY = createLabel("" + dataViewCube.maxY, "Arial", 24, "bottom", "left");
+        labelTickMinZ = createLabel("" + dataViewCube.minZ, "Arial", 24, "bottom", "left");
+        labelTickMaxZ = createLabel("" + dataViewCube.maxZ, "Arial", 24, "bottom", "right");
         
         labelTickMinX.sprite.position.set(dataViewCube.minX, dataViewCube.minY, dataViewCube.maxZ + 5);
         labelTickMaxX.sprite.position.set(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ + 5);
@@ -539,9 +540,59 @@ var pca3d = (function (model, config) {
         var scale = (width / canvas.width) * 10 * window.devicePixelRatio;
         selection.scale.set(scale, scale, scale);
         
-//        labelX.sprite.scale.set(scale * 10, scale * 10, 0);
-//        labelY.sprite.scale.set(scale * 10, scale * 10, 0);
-//        labelZ.sprite.scale.set(scale * 10, scale * 10, 0);
+        
+        var distance = cameraData.position.distanceTo(labelX.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelX.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelY.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelY.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelZ.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelTickMinX.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelTickMinX.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelTickMaxX.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelTickMaxX.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelTickMinY.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelTickMinY.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelTickMaxY.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelTickMaxY.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelTickMinZ.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelTickMinZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        var distance = cameraData.position.distanceTo(labelTickMaxZ.sprite.position);
+        var width = 2 * Math.tan(vFOV / 2) * distance;
+        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        labelTickMaxZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
+        
+        
+//        labelTickMinX.sprite.scale.set(textScale * 40, textScale * 20, 1);
+//        labelTickMaxX.sprite.scale.set(textScale * 40, textScale * 20, 1);
+//        labelTickMinY.sprite.scale.set(textScale * 40, textScale * 20, 1);
+//        labelTickMaxY.sprite.scale.set(textScale * 40, textScale * 20, 1);
+//        labelTickMinZ.sprite.scale.set(textScale * 40, textScale * 20, 1);
+//        labelTickMaxZ.sprite.scale.set(textScale * 40, textScale * 20, 1);
     }
     
     // Find 3D object under mouse pointer
@@ -594,7 +645,6 @@ var pca3d = (function (model, config) {
     // Initialize GL
     var initializeGL = function() {
         sceneData = new THREE.Scene();
-        console.log(dataViewCube);
         cameraData = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, dataViewCube.sideSize * 20);
         cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
                         
