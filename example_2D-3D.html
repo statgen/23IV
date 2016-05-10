@@ -145,7 +145,8 @@
             xAttribute: "PC1",
             yAttribute: "PC2",
             zAttribute: "PC3",
-            grid: true
+            grid: true,
+            getImage: false
         };
         
         var gl = null;
@@ -350,6 +351,8 @@
         var pcaplotDiv = d3.select("body").append("div").attr("id", "pcaplot");
         var pcalegendDiv = pcaplotDiv.append("div").attr("id", "pcalegend");
         var pcacontrolsDiv = pcaplotDiv.append("div").attr("id", "pcacontrols");
+        pcacontrolsDiv.append("div");
+        
         var canvas = pcaplotDiv.append("canvas").attr("id", "pcacanvas").attr("width", width).attr("height", height).node();
 
         var pieplotDiv = d3.select("body").append("div").attr("id", "pieplot");
@@ -360,7 +363,7 @@
         piecontrolsDiv.append("h4").attr("id", "pieselected").text("");
         
         /* BEGIN: 2D/3D switch control */
-        addSwitchControl(pcacontrolsDiv, "3D", false, function() {
+        addSwitchControl(pcacontrolsDiv.select("div"), "3D", false, function() {
             animating = false;
             switch_mode(true);
             animating = true;
@@ -375,7 +378,7 @@
         /* END: 2D/3D switch control */
         
         /* BEGIN: Grid on/off control */
-        addSwitchControl(pcacontrolsDiv, "Grid", true, function() {
+        addSwitchControl(pcacontrolsDiv.select("div"), "Grid", true, function() {
             gl.enableGrid();
         }, 
         function() {
@@ -384,16 +387,53 @@
         /* END: Grid on/off control */
         
         /* BEGIN: Axes */
-        addAxisControl(pcacontrolsDiv, dimensions, "X", "X", config.xAttribute, function() {
+        addAxisControl(pcacontrolsDiv.select("div"), dimensions, "X", "X", config.xAttribute, function() {
             var attribute = d3.select("#X").select("button").datum();
             gl.setXCoordinateAttr(attribute);
         });
         
-        addAxisControl(pcacontrolsDiv, dimensions, "Y", "Y", config.yAttribute, function() {
+        addAxisControl(pcacontrolsDiv.select("div"), dimensions, "Y", "Y", config.yAttribute, function() {
             var attribute = d3.select("#Y").select("button").datum();
             gl.setYCoordinateAttr(attribute);
         });
         /* BEGIN: End */
+        
+        /* BEGIN: Add export controls */
+        var dl = pcacontrolsDiv.append("dl");
+            
+        dl.append("dt").text("Export");
+            
+        var btnGroup = dl.append("dd").append("div").attr("class", "btn-group");
+        
+        btnGroup.append("button")
+            .attr("type", "button")
+            .attr("class", "btn btn-default btn-sm")
+            .text("Image")
+            .on("click", function(d, i) {
+                config.getImage = true;
+                window.open(config.imgData);
+            });
+        
+        btnGroup.append("button")
+            .attr("type", "button")
+            .attr("class", "btn btn-default btn-sm disabled")
+            .text("CSV")
+            .on("click", function(d, i) {
+               
+            });
+            
+
+        
+        
+//        pcacontrolsDiv.append("button")
+//            .attr("type", "button")
+//            .attr("class", "btn btn-primary btn-sm")
+//            .text("Save PNG")
+//            .on("click", function(d, i) {
+//                config.getImage = true;
+//                window.open(config.imgData);
+//            });
+        /* END: Add export controls */
         
         /* BEGIN: Piechart */
         addSliderControl(piecontrolsDiv, "pc", "Principal components", 1, dimensions.length, model.getMaxDimensions(), function(value) {
@@ -504,7 +544,7 @@
             gl.deactivate();
             if (mode_3d) {
                 gl = new pca3d(model, config);
-                addAxisControl(pcacontrolsDiv, dimensions, "Z", "Z", config.zAttribute, function() {
+                addAxisControl(pcacontrolsDiv.select("div"), dimensions, "Z", "Z", config.zAttribute, function() {
                     var attribute = d3.select("#Z").select("button").datum();
                     gl.setZCoordinateAttr(attribute);
                 });
