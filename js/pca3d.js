@@ -697,27 +697,26 @@ var pca3d = (function (model, config) {
         rescaleSelection();
         
         renderer.render(sceneData, cameraData);
-        
-        if (config.getImage == true) {
-            var canvasScreen = document.createElement("canvas");
-            canvasScreen.width = 500;
-            canvasScreen.height = 500;
-            
-            var rendererScreen = new THREE.WebGLRenderer({
-                canvas: canvasScreen,
-                reserveDrawingBuffer: true,
-                antialias: false
-            });
-            rendererScreen.setSize(canvasScreen.width, canvasScreen.height);
-            rendererScreen.setPixelRatio(8);
-            rendererScreen.setClearColor(0xffffff);
-
-            rendererScreen.render(sceneData, cameraData);
-            
-            config.imgData = rendererScreen.domElement.toDataURL();
-            config.getImage = false;
-        }
     };
+
+    this.saveImage = function() {
+        var canvasScreen = document.createElement("canvas");
+        canvasScreen.width = 500;
+        canvasScreen.height = 500;
+            
+        var rendererScreen = new THREE.WebGLRenderer({
+            canvas: canvasScreen,
+            reserveDrawingBuffer: true,
+            antialias: false
+        });
+        rendererScreen.setSize(canvasScreen.width, canvasScreen.height);
+        rendererScreen.setPixelRatio(8);
+        rendererScreen.setClearColor(0xffffff);
+
+        rendererScreen.render(sceneData, cameraData);
+            
+        return rendererScreen.domElement.toDataURL();
+    }
     
     var updateView = function() {
         calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);

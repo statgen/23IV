@@ -571,33 +571,32 @@ var pca2d = (function (model, config) {
         renderer.render(sceneData, cameraData);
         renderer.clearDepth();
         renderer.render(sceneAxes, cameraAxes);
-        
-        if (config.getImage == true) {
-            var canvasScreen = document.createElement("canvas");
-            canvasScreen.width = 500;
-            canvasScreen.height = 500;
-            
-            var rendererScreen = new THREE.WebGLRenderer({
-                canvas: canvasScreen,
-                reserveDrawingBuffer: true,
-                antialias: false
-            });
-            rendererScreen.setSize(canvasScreen.width, canvasScreen.height);
-            rendererScreen.setPixelRatio(8);
-            rendererScreen.setClearColor(0xffffff);
-            rendererScreen.autoClear = false;
-
-            rendererScreen.clear();
-            rendererScreen.render(sceneGrid, cameraGrid);
-            rendererScreen.clearDepth();
-            rendererScreen.render(sceneData, cameraData);
-            rendererScreen.clearDepth();
-            rendererScreen.render(sceneAxes, cameraAxes);
-            
-            config.imgData = rendererScreen.domElement.toDataURL();
-            config.getImage = false;
-        }
     };
+    
+    this.saveImage = function() {
+        var canvasScreen = document.createElement("canvas");
+        canvasScreen.width = 500;
+        canvasScreen.height = 500;
+            
+        var rendererScreen = new THREE.WebGLRenderer({
+            canvas: canvasScreen,
+            reserveDrawingBuffer: true,
+            antialias: false
+        });
+        rendererScreen.setSize(canvasScreen.width, canvasScreen.height);
+        rendererScreen.setPixelRatio(8);
+        rendererScreen.setClearColor(0xffffff);
+        rendererScreen.autoClear = false;
+
+        rendererScreen.clear();
+        rendererScreen.render(sceneGrid, cameraGrid);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneData, cameraData);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneAxes, cameraAxes);
+            
+        return rendererScreen.domElement.toDataURL();
+    }
     
     var updateView = function() {
         calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);

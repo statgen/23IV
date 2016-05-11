@@ -147,8 +147,7 @@
             zAttribute: "PC3",
             pointSize: 10,
             pointOpacity: 0.7,
-            grid: true,
-            getImage: false
+            grid: true
         };
         
         var gl = null;
@@ -449,8 +448,8 @@
             .attr("class", "btn btn-default btn-sm")
             .text("Image")
             .on("click", function(d, i) {
-                config.getImage = true;
-                window.open(config.imgData);
+                var data = gl.saveImage();
+                window.open(data);
             });
         
         btnGroup.append("button")
