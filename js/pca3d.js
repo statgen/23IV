@@ -413,7 +413,8 @@ var pca3d = (function (model, config) {
             vertexColors: THREE.VertexColors
         });
         
-        material.alphaTest = 0.5;
+//        material.alphaTest = 0.5;
+        material.alphaTest = 0.3;
         
         if (particles) {
             sceneData.remove(particles);
@@ -801,6 +802,18 @@ var pca3d = (function (model, config) {
                 config.grid = false;
                 sceneData.remove(grid);
             }
+        }
+    }
+    
+    this.setPointSize = function(size) {
+        if (particles) {
+            particles.material.size = size;
+        }
+    }
+    
+    this.setPointOpacity = function(alpha) {
+        if (particles) {
+            particles.material.opacity = alpha;
         }
     }
            

@@ -10,8 +10,8 @@
 	<style type="text/css">
         #pcaplot {
             position: relative;
-            width: 800px;
-            height: 500px;
+            width: 850px;
+            height: 510px;
             margin-left: auto;
             margin-right: auto;
         }
@@ -19,13 +19,13 @@
         #pcalegend {
             position: absolute;
             top: 15%;
-            width: 200px;
+            width: 250px;
             right: 0px;
         }
     
         #pcacontrols {
             position: absolute;
-            top: 15%;
+            top: 0%;
             width: 100px;
             left: 0px;
         }
@@ -145,6 +145,8 @@
             xAttribute: "PC1",
             yAttribute: "PC2",
             zAttribute: "PC3",
+            pointSize: 10,
+            pointOpacity: 0.7,
             grid: true,
             getImage: false
         };
@@ -386,6 +388,47 @@
         });
         /* END: Grid on/off control */
         
+        /* BEGIN: point size control */
+        var dl = pcacontrolsDiv.select("div").append("dl");
+            
+        dl.append("dt").text("Point size");
+        dl.append("dd").append("input")
+                .attr("type", "range")
+                .attr("min", 1)
+                .attr("max", 20)
+                .attr("step", 1)
+                .attr("value", config.pointSize)
+                .style("width", "90px")
+                .on("change", function() {
+                    //d3.select(this.parentElement.nextElementSibling).text(this.value);
+                    config.pointSize = this.value;
+                    gl.setPointSize(this.value);
+                })
+                .on("input", function() {
+                });
+        /* END: point size control */
+        
+        /* BEGIN: point opacity control */
+        var dl = pcacontrolsDiv.select("div").append("dl");
+            
+        dl.append("dt").text("Point opacity");
+        dl.append("dd").append("input")
+                .attr("type", "range")
+                .attr("min", 0.3)
+                .attr("max", 1.0)
+                .attr("step", 0.1)
+                .attr("value", config.pointOpacity)
+                .style("width", "90px")
+                .on("change", function() {
+                    //d3.select(this.parentElement.nextElementSibling).text(this.value);
+                    config.pointOpacity = this.value;
+                    gl.setPointOpacity(this.value);
+                })
+                .on("input", function() {
+                });
+        /* END: point size control */
+        
+        
         /* BEGIN: Axes */
         addAxisControl(pcacontrolsDiv.select("div"), dimensions, "X", "X", config.xAttribute, function() {
             var attribute = d3.select("#X").select("button").datum();
@@ -421,18 +464,6 @@
             .on("click", function(d, i) {
                
             });
-            
-
-        
-        
-//        pcacontrolsDiv.append("button")
-//            .attr("type", "button")
-//            .attr("class", "btn btn-primary btn-sm")
-//            .text("Save PNG")
-//            .on("click", function(d, i) {
-//                config.getImage = true;
-//                window.open(config.imgData);
-//            });
         /* END: Add export controls */
         
         /* BEGIN: Piechart */
@@ -446,7 +477,8 @@
         /* END: Piechart */
         
         /* BEGIN:  Legend */
-        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px");
+//        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px");
+        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px").style("width", "120px");
         
         dl.append("dt").text("Reference");
         
@@ -493,7 +525,8 @@
         });
         
         
-        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("right", "0px");
+//        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("right", "0px");
+        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "120px").style("width", "150px");
         
         dl.append("dt").text("Study");
         

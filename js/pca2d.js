@@ -669,6 +669,18 @@ var pca2d = (function (model, config) {
         }
     }
     
+    this.setPointSize = function(size) {
+        if (particles) {
+            particles.material.size = size;
+        }
+    }
+    
+    this.setPointOpacity = function(alpha) {
+        if (particles) {
+            particles.material.opacity = alpha;
+        }
+    }
+    
     calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
     calculateDataViewSquare();
     
