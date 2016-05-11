@@ -319,11 +319,11 @@ var pca2d = (function (model, config) {
         
         var material = new THREE.PointsMaterial({
             color: 0xffffff,
-            size: 10,
+            size: config.pointSize,
             sizeAttenuation: false,
             transparent: true,
             map: circle,
-            opacity: 0.7,
+            opacity: config.pointOpacity,
             vertexColors: THREE.VertexColors
         });
         
@@ -442,7 +442,7 @@ var pca2d = (function (model, config) {
     
     // Rescale selection shape
     var rescaleSelection = function() {
-        var normalizedSize = (dataViewSquare.sideSize / canvas.width) * 10 * window.devicePixelRatio;
+        var normalizedSize = (dataViewSquare.sideSize / canvas.width) * config.pointSize * window.devicePixelRatio;
         var size = normalizedSize / cameraData.zoom;
         selection.scale.set(size, size, size);
     }
@@ -628,6 +628,20 @@ var pca2d = (function (model, config) {
         controls.update();
         render();
     };
+    
+    this.setPointSize = function(size) {
+        config.pointSize = size;
+        if (particles) {
+            particles.material.size = size;
+        }
+    }
+    
+    this.setPointOpacity = function(alpha) {
+        config.pointOpacity = alpha;
+        if (particles) {
+            particles.material.opacity = alpha;
+        }
+    }
         
     this.setXCoordinateAttr = function (name) {
         config.xAttribute = name;
@@ -666,18 +680,6 @@ var pca2d = (function (model, config) {
                 config.grid = false;
                 sceneGrid.remove(grid);
             }
-        }
-    }
-    
-    this.setPointSize = function(size) {
-        if (particles) {
-            particles.material.size = size;
-        }
-    }
-    
-    this.setPointOpacity = function(alpha) {
-        if (particles) {
-            particles.material.opacity = alpha;
         }
     }
     

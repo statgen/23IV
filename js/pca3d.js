@@ -405,11 +405,11 @@ var pca3d = (function (model, config) {
         var geometry = new THREE.Geometry();
         var material = new THREE.PointsMaterial({
             color: 0xffffff,
-            size: 10,
+            size: config.pointSize,
             sizeAttenuation: false,
             transparent: true,
             map: sphere,
-//            opacity: 0.7,
+            opacity: config.pointOpacity,
             vertexColors: THREE.VertexColors
         });
         
@@ -538,7 +538,7 @@ var pca3d = (function (model, config) {
         var distance = cameraData.position.distanceTo(selection.position);
         var vFOV = cameraData.fov * Math.PI / 180;
         var width = 2 * Math.tan(vFOV / 2) * distance;
-        var scale = (width / canvas.width) * 10 * window.devicePixelRatio;
+        var scale = (width / canvas.width) * config.pointSize * window.devicePixelRatio;
         selection.scale.set(scale, scale, scale);
         
         
@@ -586,14 +586,6 @@ var pca3d = (function (model, config) {
         var width = 2 * Math.tan(vFOV / 2) * distance;
         var textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMaxZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
-        
-        
-//        labelTickMinX.sprite.scale.set(textScale * 40, textScale * 20, 1);
-//        labelTickMaxX.sprite.scale.set(textScale * 40, textScale * 20, 1);
-//        labelTickMinY.sprite.scale.set(textScale * 40, textScale * 20, 1);
-//        labelTickMaxY.sprite.scale.set(textScale * 40, textScale * 20, 1);
-//        labelTickMinZ.sprite.scale.set(textScale * 40, textScale * 20, 1);
-//        labelTickMaxZ.sprite.scale.set(textScale * 40, textScale * 20, 1);
     }
     
     // Find 3D object under mouse pointer
@@ -753,6 +745,20 @@ var pca3d = (function (model, config) {
         controls.update();
         render();
     };
+    
+    this.setPointSize = function(size) {
+        config.pointSize = size;
+        if (particles) {
+            particles.material.size = size;
+        }
+    }
+    
+    this.setPointOpacity = function(alpha) {
+        config.pointOpacity = alpha;
+        if (particles) {
+            particles.material.opacity = alpha;
+        }
+    }
        
     this.setXCoordinateAttr = function(name) {
         config.xAttribute = name;
@@ -802,18 +808,6 @@ var pca3d = (function (model, config) {
                 config.grid = false;
                 sceneData.remove(grid);
             }
-        }
-    }
-    
-    this.setPointSize = function(size) {
-        if (particles) {
-            particles.material.size = size;
-        }
-    }
-    
-    this.setPointOpacity = function(alpha) {
-        if (particles) {
-            particles.material.opacity = alpha;
         }
     }
            

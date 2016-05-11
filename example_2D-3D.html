@@ -400,8 +400,6 @@
                 .attr("value", config.pointSize)
                 .style("width", "90px")
                 .on("change", function() {
-                    //d3.select(this.parentElement.nextElementSibling).text(this.value);
-                    config.pointSize = this.value;
                     gl.setPointSize(this.value);
                 })
                 .on("input", function() {
@@ -420,8 +418,6 @@
                 .attr("value", config.pointOpacity)
                 .style("width", "90px")
                 .on("change", function() {
-                    //d3.select(this.parentElement.nextElementSibling).text(this.value);
-                    config.pointOpacity = this.value;
                     gl.setPointOpacity(this.value);
                 })
                 .on("input", function() {
