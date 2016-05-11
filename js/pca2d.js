@@ -573,7 +573,82 @@ var pca2d = (function (model, config) {
         renderer.render(sceneAxes, cameraAxes);
     };
     
-    this.saveImage = function() {
+    var drawLegend = function() {
+        var labelfontsize = 32;
+        var groupfontsize = 28;
+        var starx = 75;
+        var starty = 95;
+        var stepy = -5;
+        
+        var material = new THREE.PointsMaterial({
+            color: 0xffffff,
+            size: 10,
+            sizeAttenuation: false,
+            transparent: true,
+            map: circle,
+            vertexColors: THREE.VertexColors
+        });
+        
+        var scene = new THREE.Scene();
+        var geometry = new THREE.Geometry();
+        var name = null;
+        
+        name = createLabel("Reference", "Arial", labelfontsize, "", "right");
+        name.sprite.scale.set(40, 20, 1);
+        name.sprite.position.set(starx, starty, 0);
+        scene.add(name.sprite);
+        starty += stepy;
+        
+        for (var i = 0; i < model.groups.length; i++) {
+            if (!model.activeGroups.hasOwnProperty(model.groups[i].name)) {
+                continue;
+            }
+            if (model.studyGroups.hasOwnProperty(model.groups[i].name)) {
+                continue;
+            }
+            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right");
+            name.sprite.scale.set(40, 20, 1);
+            name.sprite.position.set(starx + 5, starty, 0);
+            
+            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
+            geometry.colors.push(new THREE.Color(model.groups[i].color));
+            
+            scene.add(name.sprite);
+            starty += stepy;
+        }
+        
+        starty -= 3;
+        
+        name = createLabel("Study", "Arial", labelfontsize, "", "right");
+        name.sprite.scale.set(40, 20, 1);
+        name.sprite.position.set(starx, starty, 0);
+        scene.add(name.sprite);
+        starty += stepy;
+        
+        for (var i = 0; i < model.groups.length; i++) {
+            if (!model.activeGroups.hasOwnProperty(model.groups[i].name)) {
+                continue;
+            }
+            if (!model.studyGroups.hasOwnProperty(model.groups[i].name)) {
+                continue;
+            }
+            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right");
+            name.sprite.scale.set(40, 20, 1);
+            name.sprite.position.set(starx + 5, starty, 0);
+            
+            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
+            geometry.colors.push(new THREE.Color(model.groups[i].color));
+            
+            scene.add(name.sprite);
+            starty += stepy;
+        }
+        
+        scene.add(new THREE.Points(geometry, material));
+        
+        return scene;
+    }
+    
+    this.saveImage = function(legend) {
         var canvasScreen = document.createElement("canvas");
         canvasScreen.width = 500;
         canvasScreen.height = 500;
@@ -594,6 +669,14 @@ var pca2d = (function (model, config) {
         rendererScreen.render(sceneData, cameraData);
         rendererScreen.clearDepth();
         rendererScreen.render(sceneAxes, cameraAxes);
+        
+        if (legend == true) {
+            var cameraLegend = new THREE.OrthographicCamera(-100, 100, 100, -100, 0, 100);
+            cameraLegend.position.set(0, 0, 100);
+            
+            rendererScreen.clearDepth();
+            rendererScreen.render(drawLegend(), cameraLegend);
+        }    
             
         return rendererScreen.domElement.toDataURL();
     }

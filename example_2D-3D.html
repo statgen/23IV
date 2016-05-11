@@ -10,7 +10,7 @@
 	<style type="text/css">
         #pcaplot {
             position: relative;
-            width: 850px;
+            width: 870px;
             height: 510px;
             margin-left: auto;
             margin-right: auto;
@@ -26,7 +26,7 @@
         #pcacontrols {
             position: absolute;
             top: 0%;
-            width: 100px;
+            width: 120px;
             left: 0px;
         }
         
@@ -35,7 +35,7 @@
             border: 1px solid #ffffff;
             position: absolute;
             top: 0px;
-            left: 100px;
+            left: 120px;
             z-index: 1;
         }
         
@@ -445,13 +445,29 @@
         
         btnGroup.append("button")
             .attr("type", "button")
-            .attr("class", "btn btn-default btn-sm")
+            .attr("class", "btn btn-default btn-sm dropdown-toggle")
+            .attr("data-toggle", "dropdown")
             .text("Image")
-            .on("click", function(d, i) {
-                var data = gl.saveImage();
-                window.open(data);
-            });
+            .append("span")
+                .attr("class", "caret");
         
+        var ul = btnGroup.append("ul").attr("class", "dropdown-menu");
+        
+        [{"text": "With legend", "value": true}, {"text": "Without legend", "value": false}].forEach(
+            function(row, index) {
+                ul.append("li").append("a")
+                    .attr("href", "#")
+                    .datum(row)
+                    .text(function(d) {return d.text;})
+                    .on("click", function(d, i) {
+                        console.log(d);
+                        console.log(d.value);
+                        var data = gl.saveImage(d.value);
+                        window.open(data);
+                    });
+            }
+        );
+                
         btnGroup.append("button")
             .attr("type", "button")
             .attr("class", "btn btn-default btn-sm disabled")
