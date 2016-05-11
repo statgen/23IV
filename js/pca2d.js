@@ -137,9 +137,14 @@ var pca2d = (function (model, config) {
     }
     
     // Create label
-    var createLabel = function(text, fontface, fontsize, valign, halign) {
+    var createLabel = function(text, fontface, fontsize, valign, halign, canvasWidth) {
         var canvas = document.createElement('canvas');
         var context = canvas.getContext("2d");
+        
+        if (canvasWidth) {
+            canvas.width = canvasWidth;
+            canvas.height = canvasWidth / 2;
+        }
             
         context.font = fontsize + "px " + fontface;
         context.fillStyle = "rgba(0, 0, 0, 1.0)";
@@ -576,8 +581,8 @@ var pca2d = (function (model, config) {
     var drawLegend = function() {
         var labelfontsize = 32;
         var groupfontsize = 28;
-        var starx = 75;
-        var starty = 95;
+        var starx = 60;
+        var starty = 90;
         var stepy = -5;
         
         var material = new THREE.PointsMaterial({
@@ -593,8 +598,8 @@ var pca2d = (function (model, config) {
         var geometry = new THREE.Geometry();
         var name = null;
         
-        name = createLabel("Reference", "Arial", labelfontsize, "", "right");
-        name.sprite.scale.set(40, 20, 1);
+        name = createLabel("Reference", "Arial", labelfontsize, "", "right", 500);
+        name.sprite.scale.set(70, 35, 1);
         name.sprite.position.set(starx, starty, 0);
         scene.add(name.sprite);
         starty += stepy;
@@ -606,8 +611,8 @@ var pca2d = (function (model, config) {
             if (model.studyGroups.hasOwnProperty(model.groups[i].name)) {
                 continue;
             }
-            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right");
-            name.sprite.scale.set(40, 20, 1);
+            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right", 500);
+            name.sprite.scale.set(70, 35, 1);
             name.sprite.position.set(starx + 5, starty, 0);
             
             geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
@@ -619,8 +624,8 @@ var pca2d = (function (model, config) {
         
         starty -= 3;
         
-        name = createLabel("Study", "Arial", labelfontsize, "", "right");
-        name.sprite.scale.set(40, 20, 1);
+        name = createLabel("Study", "Arial", labelfontsize, "", "right", 500);
+        name.sprite.scale.set(70, 35, 1);
         name.sprite.position.set(starx, starty, 0);
         scene.add(name.sprite);
         starty += stepy;
@@ -632,8 +637,8 @@ var pca2d = (function (model, config) {
             if (!model.studyGroups.hasOwnProperty(model.groups[i].name)) {
                 continue;
             }
-            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right");
-            name.sprite.scale.set(40, 20, 1);
+            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right", 500);
+            name.sprite.scale.set(70, 35, 1);
             name.sprite.position.set(starx + 5, starty, 0);
             
             geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));

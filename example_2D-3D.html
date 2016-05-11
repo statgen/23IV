@@ -364,18 +364,20 @@
         piecontrolsDiv.append("h4").attr("id", "pieselected").text("");
         
         /* BEGIN: 2D/3D switch control */
-        addSwitchControl(pcacontrolsDiv.select("div"), "3D", false, function() {
-            animating = false;
-            switch_mode(true);
-            animating = true;
-            animate();
-        }, 
-        function() {
-            animating = false;
-            switch_mode(false);
-            animating = true;
-            animate();            
-        });
+        if (dimensions.length > 2) {
+            addSwitchControl(pcacontrolsDiv.select("div"), "3D", false, function() {
+                animating = false;
+                switch_mode(true);
+                animating = true;
+                animate();
+            }, 
+            function() {
+                animating = false;
+                switch_mode(false);
+                animating = true;
+                animate();            
+            });
+        }
         /* END: 2D/3D switch control */
         
         /* BEGIN: Grid on/off control */
@@ -447,7 +449,7 @@
             .attr("type", "button")
             .attr("class", "btn btn-default btn-sm dropdown-toggle")
             .attr("data-toggle", "dropdown")
-            .text("Image")
+            .text("Image ")
             .append("span")
                 .attr("class", "caret");
         
@@ -489,7 +491,7 @@
         
         /* BEGIN:  Legend */
 //        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px");
-        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px").style("width", "120px");
+        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "0px").style("width", "150px");
         
         dl.append("dt").text("Reference");
         
@@ -537,7 +539,7 @@
         
         
 //        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("right", "0px");
-        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "120px").style("width", "150px");
+        var dl = pcalegendDiv.append("dl").style("position", "absolute").style("left", "150px").style("width", "150px");
         
         dl.append("dt").text("Study");
         
