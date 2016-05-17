@@ -1,232 +1,279 @@
-var DataModel = (function (data, dimensionNames, groups, studyGroups) {
-    this.data = data;
-    this.dimensionNames = dimensionNames;
+var DataModel = (function (groups, dimensions, points) {
     this.groups = groups;
-    this.studyGroups = {};
+    this.dimensions = dimensions;
+    this.points = points;
+    this.pointsByGroup = {};
     this.activeGroups = {};
-    this.inactiveGroups = {};
-    this.activeElements = [];
-    this.activeNeighbors = [];
-    this.nearestActiveNeighbors = [];
+    this.nearestNeighbors = [];
     
-    var selectedActiveElement = null;
+    var selection = {
+        group: null,
+        index: null
+    };
     
-    var maxDimensions = dimensionNames.length;
-    var kNearestNeighbors = 0;
-    var sortedActiveNeighbors = null;
+    var listeners = {
+        "onGroupChange": {},
+        "onSelectionChange": {},
+        "onNeighborsChange": {},
+        "onGroupColorChange": {},
+        "onGroupOpacityChange": {}
+    };
     
-    var listeners = {};
+    // BEGIN: Variables for K-nearest neighbors (KNN).
+    var activeDimensions = dimensions.length;
+    var maxNearestNeighbors = 0;
+    var sortedAllNeighbors = null;
+    // END.
     
-    for (var i = 0; i < studyGroups.length; i++) {
-        this.studyGroups[studyGroups[i]] = "";
+    // BEGIN: (a) Split points into arrays by group. (b) Assign default opacity to each group. (c) Set active groups (initially all groups are active).
+    for (var group in this.groups) {
+        this.pointsByGroup[group] = new Array();
+        this.groups[group].opacity = 0.7;
+        this.activeGroups[group] = "";
     }
     
-    for (var i = 0; i < this.groups.length; i++) {
-        this.activeGroups[this.groups[i]["name"]] = [];
+    for (var i = 0; i < this.points.length; i++) {
+        this.pointsByGroup[this.points[i].grp].push(i);
+    }
+    // END.
+    
+    // BEGIN: Add/remove/notify model change listeners.
+    this.addListener = function(event, name, callback) {
+        if (listeners.hasOwnProperty(event)) {
+            listeners[event][name] = callback;
+        }
     }
     
-    for (var i = 0; i < this.data.length; i++) {
-        this.activeElements.push(i);
-        this.activeGroups[this.data[i]["group"]].push(i);
+    this.removeListener = function(event, name) {
+        if (listeners.hasOwnProperty(event)) {
+            if (listeners[event].hasOwnProperty(name)) {
+                delete listeners[event][name];
+            }
+        }
+    }
+    
+    var notifyListeners = function(event, object) {
+        if (listeners.hasOwnProperty(event)) {
+             for (var listener in listeners[event]) {
+                 listeners[event][listener](object);
+             }
+        }
+    }
+    // BEGIN.
+    
+    // BEGIN: Change group visual attributes.
+    this.getGroupColor = function(group) {
+        return groups[group].color;
+    }
+    
+    this.setGroupColor = function(group, hexColor) {
+        groups[group].color = hexColor;
+        notifyListeners("onGroupColorChange", group);
+    }
+    
+    this.getGroupOpacity = function(group) {
+        return groups[group].opacity;
+    }
+    
+    this.setGroupOpacity = function(group, alpha) {
+        groups[group].opacity = alpha;
+        notifyListeners("onGroupOpacityChange", group);
+    }
+    // END.
+    
+    // BEGIN: Activate/deactivate group.
+    this.isGroupActive = function(group) {
+        return this.activeGroups.hasOwnProperty(group);
+    }
+    
+    this.deactivateGroup = function(group) {
+        if (!this.activeGroups.hasOwnProperty(group)) {
+            return;
+        }
         
-        if (!this.studyGroups.hasOwnProperty(this.data[i]["group"])) {
-            this.activeNeighbors.push(i);
-        }
-    }
-    
-    this.addListener = function(name, callback) {
-        listeners[name] = callback;
-    }
-    
-    this.removeListener = function(name) {
-        if (listeners.hasOwnProperty(name)) {
-            delete listeners[name];
-        }
-    }
-    
-    var notifyListeners = function(dataChanged, selectionChanged, neighborsChanged) {
-        for (var listener in listeners) {
-            listeners[listener](dataChanged, selectionChanged, neighborsChanged);
-        }
-    }
-    
-    this.getElement = function(activeElement) {
-        return this.activeElements[activeElement];
-    }
-    
-    this.selectActiveElement = function(activeElement) {
-        selectedActiveElement = activeElement;
+        delete this.activeGroups[group];
         
-        if (selectedActiveElement) {
-            sortNeighbors(this);
-            this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
-        } else {
-            sortedNeighbors = null;
-            this.nearestActiveNeighbors = [];
+        notifyListeners("onGroupChange");
+        
+        if (selection.group == group) {
+            selection.group = null;
+            selection.index = null;
+            sortedAllNeighbors = null;
+            this.nearestNeighbors = [];
+            notifyListeners("onSelectionChange");
+            notifyListeners("onNeighborsChange");
         }
         
-        notifyListeners(false, true, true);
+        if ((selection.group != null) && (selection.index != null)) {
+            sortAllNeighbors(this);
+            this.nearestNeighbors = sortedAllNeighbors.slice(1, 1 + maxNearestNeighbors);
+            notifyListeners("onNeighborsChange");
+        }
     }
     
-    this.getSelectedActiveElement = function() {
-        return selectedActiveElement;
+    this.activateGroup = function(group) {
+        if (this.activeGroups.hasOwnProperty(group)) {
+            return;
+        }
+        
+        if (!this.groups.hasOwnProperty(group)) {
+            return;
+        }
+        
+        this.activeGroups[group] = "";
+        
+        notifyListeners("onGroupChange");
+        
+        if ((selection.group != null) && (selection.index != null)) {
+            sortAllNeighbors(this);
+            this.nearestNeighbors = sortedAllNeighbors.slice(1, 1 + maxNearestNeighbors);
+            notifyListeners("onNeighborsChange");
+        }
+    }
+    // END.
+    
+    this.getPoint = function(group, index) {
+        return this.points[this.pointsByGroup[group][index]];
     }
     
-    this.getSelectedElement = function() {
-        if (selectedActiveElement) {
-            return this.activeElements[selectedActiveElement];
+    // BEGIN: Point selection.
+    this.isPointSelected = function(group, index) {
+        if ((selection.group == group) && (selection.index == index)) {
+            return true;
+        }
+        return false;
+    }
+    
+    this.hasSelectedPoint = function() {
+        if ((selection.group != null) && (selection.index != null)) {
+            return true;
+        }
+        return false;
+    }
+    
+    this.getSelection = function() {
+        return {
+            group: selection.group,
+            index: selection.index
+        }; 
+    }
+    
+    this.getSelectedPoint = function() {
+        if ((selection.group != null) && (selection.index != null)) {
+            return this.points[this.pointsByGroup[selection.group][selection.index]];
         }
         return null;
     }
     
-    this.deactivateGroup = function(name) {
-        if (this.activeGroups.hasOwnProperty(name)) {
-            var selectedElement = this.getSelectedElement();
-            
-            if (selectedElement) {
-                if (this.data[selectedElement]["group"] == name) {
-                    selectedActiveElement = null;
-                    this.nearestActiveNeighbors = [];
-                }
-            }
-            
-            this.inactiveGroups[name] = this.activeGroups[name];
-            delete this.activeGroups[name];
-            
-            var i = 0;
-            
-            this.activeElements = this.activeElements.filter(
-                function(value, index, array) { 
-                    if (this.activeGroups.hasOwnProperty(data[value]["group"])) {
-                        if (value == selectedElement) {
-                            selectedActiveElement = i;  
-                        }
-                        i++;
-                        return true;
-                    }
-                    return false;
-                }, 
-                this
-            );
-            
-            this.activeNeighbors = new Array();
-            for (var j = 0; j < this.activeElements.length; j++) {
-                if (!this.studyGroups.hasOwnProperty(this.data[this.activeElements[j]]["group"])) {
-                    this.activeNeighbors.push(j);
-                }
-            }
-            
-            if (selectedActiveElement) {
-                sortNeighbors(this);
-                this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
-            }
-                        
-            notifyListeners(true, true, true);
-        }    
-    }
-    
-    this.activateGroup = function(name) {
-        if (this.inactiveGroups.hasOwnProperty(name)) {
-            this.activeGroups[name] = this.inactiveGroups[name];
-            delete this.inactiveGroups[name];
-            Array.prototype.push.apply(this.activeElements, this.activeGroups[name]);
-            
-            this.activeNeighbors = new Array();
-            for (var j = 0; j < this.activeElements.length; j++) {
-                if (!this.studyGroups.hasOwnProperty(this.data[this.activeElements[j]]["group"])) {
-                    this.activeNeighbors.push(j);
-                }
-            }
-            
-            if (selectedActiveElement) {
-                sortNeighbors(this);
-                this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
-            }
-            
-            notifyListeners(true, false, true);
-        }
-    }
- 
-    this.isGroupActive = function(name) {
-        return this.activeGroups.hasOwnProperty(name);
-    }
-    
-    this.setMaxDimensions = function(dimensions) {
-        dimensions = parseInt(dimensions);
+    this.selectPoint = function(group, index) {
+        selection.group = group;
+        selection.index = index;
         
-        if (dimensions < 1) {
-            maxDimensions = 1;
-        } else if (dimensions > dimensionNames.length) {
-            maxDimensions = dimensionNames.length;
+        if ((group != null) && (index != null)) {
+            sortAllNeighbors(this);
+            this.nearestNeighbors = sortedAllNeighbors.slice(1, 1 + maxNearestNeighbors);
         } else {
-            maxDimensions = dimensions;
+            sortedAllNeighbors = null;
+            this.nearestNeighbors = [];
         }
+    
+        notifyListeners("onSelectionChange");
+        notifyListeners("onNeighborsChange");
+    }
+    // END.
+    
+    // BEGIN: Functions for K-nearest neighbors (KNN).
+    this.getActiveDimensions = function() {
+        return activeDimensions;
+    }
+    
+    this.setActiveDimensions = function(value) {
+        activeDimensions = parseInt(value);
+
+        if (activeDimensions < 1) {
+            activeDimensions = 1;
+        } else if (activeDimensions > this.dimensions.length) {
+            activeDimensions = this.dimensions.length;
+        } 
         
-        if (selectedActiveElement) {
-            sortNeighbors(this);
-            this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
-            notifyListeners(false, false, true);
+        if ((selection.group != null) && (selection.index != null)) {
+            sortAllNeighbors(this);
+            this.nearestNeighbors = sortedAllNeighbors.slice(1, 1 + maxNearestNeighbors);
+            notifyListeners("onNeighborsChange");
         }
     }
     
-    this.getMaxDimensions = function() {
-        return maxDimensions;
+    this.getMaxNearestNeighbors = function() {
+        return maxNearestNeighbors;
     }
     
-    this.setKNearestNeighbors = function(k) {
-        k = parseInt(k);
-        
-        if (k < 0) {
-            k = 0;
-        } else if (k >= this.activeElements.length) {
-            kNearestNeighbors = this.activeElements.length - 1;
-        } else {
-            kNearestNeighbors = k;
+    this.getAllNeighbors = function() {
+        var n = 0;
+        for (var group in this.activeGroups) {
+            if (this.groups[group].reference) {
+                n += this.pointsByGroup[group].length;
+            }
         }
-        
-        if (selectedActiveElement) {
-            this.nearestActiveNeighbors = sortedActiveNeighbors.slice(1, 1 + kNearestNeighbors);
+        if (n > 0) {
+            n -= 1;
         }
-        
-        notifyListeners(false, false, true);
+        return n;
     }
     
-    this.getKNearestNeighbors = function() {
-        return kNearestNeighbors;
-    }
+    var sortAllNeighbors = function(thisArg) {
+        var selectedPoint = thisArg.pointsByGroup[selection.group][selection.index];
         
-    this.distance = function(element1, element2) {
+        sortedAllNeighbors = new Array(thisArg.getAllNeighbors());
+
+        var i = 0;
+        var pointsInGroup = null;
+        var point = null;
+        for (var group in thisArg.activeGroups) {
+            if (thisArg.groups[group].reference) {
+                pointsInGroup = thisArg.pointsByGroup[group];
+                for (var j = 0; j < pointsInGroup.length; j++, i++) {
+                    point = pointsInGroup[j];
+                    sortedAllNeighbors[i] = { 
+                        "group": group, 
+                        "index": j,
+                        "dist": distance(selectedPoint, point)
+                    };
+                }
+            }
+        }
+        
+        sortedAllNeighbors.sort(function(f, s) {
+            return f.dist - s.dist;
+        });
+    }
+    
+    this.setMaxNearestNeighbors = function(value) {
+        allNeighbors = this.getAllNeighbors();
+        maxNearestNeighbors = parseInt(value);
+        
+        if (maxNearestNeighbors < 0) {
+            maxNearestNeighbors = 0;
+        } else if (maxNearestNeighbors > allNeighbors) {
+            maxNearestNeighbors = allNeighbors;
+        } 
+        
+        if ((selection.group != null) && (selection.index != null)) {
+             this.nearestNeighbors = sortedAllNeighbors.slice(1, 1 + maxNearestNeighbors);
+        }
+        
+        notifyListeners("onNeighborsChange");
+    }
+    
+    var distance = function(point1, point2) {
         var distance = 0;
         var dimension = null;
             
-        for (var d = 0; d < maxDimensions; d++) {
-            dimensionName = dimensionNames[d];
-            distance += Math.pow(this.data[element1][dimensionName] - this.data[element2][dimensionName], 2);
+        for (var d = 0; d < activeDimensions; d++) {
+            distance += Math.pow(this.points[point1].loc[d] - this.points[point2].loc[d], 2);
         }
             
         return Math.sqrt(distance);
     }
-    
-    var sortNeighbors = function(thisArg) {
-        var element = null;
-        var selectedElement = thisArg.getSelectedElement();
+    // END.
         
-        sortedActiveNeighbors = new Array(thisArg.activeNeighbors.length);
-            
-        for (var i = 0; i < thisArg.activeNeighbors.length; ++i) {
-            element = thisArg.activeElements[thisArg.activeNeighbors[i]];
-            sortedActiveNeighbors[i] = { distance: thisArg.distance(element, selectedElement), index: thisArg.activeNeighbors[i]};
-        }
-        sortedActiveNeighbors.sort(function(f, s) {
-            return f.distance - s.distance;
-        });
-        
-        sortedActiveNeighbors = sortedActiveNeighbors.map(
-            function(value, index, array) {
-                return value.index;
-            }, 
-            this
-        );
-    }
-    
 });

@@ -34,16 +34,22 @@ var pca3d = (function (model, config) {
         sideSize: 0
     };
         
-    var sceneData = null;
-    var cameraData = null;
+    var scene = null;
+    var camera = null;
     var renderer = null;
     var raycaster = null;
     var controls = null;
-    var particles = null;
+    
+    var particlesByGroup = null;
+    var particlesInScene = null;
+    
+    var selection = null;
+    var selectionId = -1;
+    
     var grid = null;
     var axes = null;
     var ticks = null;
-    var selection = null;
+    var neighbors = null;
     
     // Axes labels and ticks labels
     var labelX = null;
@@ -57,23 +63,41 @@ var pca3d = (function (model, config) {
     var labelTickMaxZ = null;
     
     // Mouse position in window
-    var mouse = {x: 0, y: 0};
+    var mouse = {
+        x: 0, 
+        y: 0
+    };
+    
     // Normalized mouse position in canvas
     var mouse2d = new THREE.Vector2();
     
-    // Currently picked object ID
-    var picked = null;
-    // Currently tipped objtect ID
-    var tooltip = null;
-    // Currently highlighted object ID
-    var highlighted = null;
-    // Currently selected neighbors
-    var neighbors = null;
+    // Currently picked object
+    var picked = {
+        group: null,
+        index: null
+    };
     
-    var sphere = new THREE.TextureLoader().load("textures/sphere.png");
+    // Currently highlighted object
+    var highlighted = {
+        group: null,
+        index: null
+    };
+
+    // Currently tipped objtect
+    var tooltip = {
+        group: null,
+        index: null
+    };
+
+    var symbols = new Array(7);
+    
+    // Initialize symbols
+    for (var i = 0; i < symbols.length; i++) {
+        symbols[i] = new THREE.TextureLoader().load("textures/2d_" + i + ".png");
+    }        
     
     // Calculate bouding box for data
-    var calculateDataBoundingBox = function(xDimName, yDimName, zDimName) {
+    var calculateDataBoundingBox = function(xDim, yDim, zDim) {
         dataBoundingBox.minX = Number.MAX_VALUE;
         dataBoundingBox.minY = Number.MAX_VALUE;
         dataBoundingBox.minZ = Number.MAX_VALUE;
@@ -81,10 +105,10 @@ var pca3d = (function (model, config) {
         dataBoundingBox.maxY = 0;
         dataBoundingBox.maxZ = 0;
             
-        for (var i = 0; i < model.data.length; i++) {
-            var x = model.data[i][xDimName];
-            var y = model.data[i][yDimName];
-            var z = model.data[i][zDimName];
+        for (var i = 0; i < model.points.length; i++) {
+            var x = model.points[i].loc[xDim];
+            var y = model.points[i].loc[yDim];
+            var z = model.points[i].loc[zDim];
             if (x > dataBoundingBox.maxX) { dataBoundingBox.maxX = x; }
             if (x < dataBoundingBox.minX) { dataBoundingBox.minX = x; }
             if (y > dataBoundingBox.maxY) { dataBoundingBox.maxY = y; }
@@ -234,11 +258,11 @@ var pca3d = (function (model, config) {
         var axis_material = new THREE.LineBasicMaterial({color: 0x000000, linewidth: 1});
         
         if (axes) {
-            sceneData.remove(axes);
+            scene.remove(axes);
         }
         
         if (ticks) {
-            sceneData.remove(ticks);
+            scene.remove(ticks);
         }
         
         var axes_geometry = new THREE.Geometry();
@@ -255,7 +279,7 @@ var pca3d = (function (model, config) {
             new THREE.Vector3(dataViewCube.maxX, dataViewCube.minY, dataViewCube.maxZ));
         
         axes = new THREE.LineSegments(axes_geometry, axis_material);
-        sceneData.add(axes);
+        scene.add(axes);
         
         ticks_geometry.vertices.push(
             new THREE.Vector3(dataViewCube.minX - 2, dataViewCube.maxY, dataViewCube.maxZ), 
@@ -277,54 +301,54 @@ var pca3d = (function (model, config) {
             new THREE.Vector3(dataViewCube.maxX + 2, dataViewCube.minY, dataViewCube.minZ));
 
         ticks = new THREE.LineSegments(ticks_geometry, axis_material);
-        sceneData.add(ticks);
+        scene.add(ticks);
         
         if (labelX) {
-            sceneData.remove(labelX.sprite);
+            scene.remove(labelX.sprite);
         }
         
         if (labelY) {
-            sceneData.remove(labelY.sprite);
+            scene.remove(labelY.sprite);
         }
         
         if (labelZ) {
-            sceneData.remove(labelZ.sprite);
+            scene.remove(labelZ.sprite);
         }
         
-        labelX = createLabel(config.xAttribute, "Arial", 32, "bottom", "");
-        labelY = createLabel(config.yAttribute, "Arial", 32, "", "left");
-        labelZ = createLabel(config.zAttribute, "Arial", 32, "bottom", "");
+        labelX = createLabel(model.dimensions[config.xDim], "Arial", 32, "bottom", "");
+        labelY = createLabel(model.dimensions[config.yDim], "Arial", 32, "", "left");
+        labelZ = createLabel(model.dimensions[config.zDim], "Arial", 32, "bottom", "");
         
         labelX.sprite.position.set(dataViewCube.centerX, dataViewCube.minY, dataViewCube.maxZ + 5);
         labelY.sprite.position.set(dataViewCube.minX, dataViewCube.centerY, dataViewCube.maxZ + 5);
         labelZ.sprite.position.set(dataViewCube.maxX + 5, dataViewCube.minY, dataViewCube.centerZ);
             
-        sceneData.add(labelX.sprite);
-        sceneData.add(labelY.sprite);
-        sceneData.add(labelZ.sprite);
+        scene.add(labelX.sprite);
+        scene.add(labelY.sprite);
+        scene.add(labelZ.sprite);
         
         if (labelTickMinX) {
-            sceneData.remove(labelTickMinX.sprite);
+            scene.remove(labelTickMinX.sprite);
         }
         
         if (labelTickMaxX) {
-            sceneData.remove(labelTickMaxX.sprite);
+            scene.remove(labelTickMaxX.sprite);
         }
         
         if (labelTickMinY) {
-            sceneData.remove(labelTickMinY.sprite);
+            scene.remove(labelTickMinY.sprite);
         }
         
         if (labelTickMaxY) {
-            sceneData.remove(labelTickMaxY.sprite);    
+            scene.remove(labelTickMaxY.sprite);    
         }
         
         if (labelTickMinZ) {
-            sceneData.remove(labelTickMinZ.sprite);
+            scene.remove(labelTickMinZ.sprite);
         }
         
         if (labelTickMaxZ) {
-            sceneData.remove(labelTickMaxZ.sprite);
+            scene.remove(labelTickMaxZ.sprite);
         }
         
         labelTickMinX = createLabel("" + dataViewCube.minX, "Arial", 24, "bottom", "right");
@@ -341,12 +365,12 @@ var pca3d = (function (model, config) {
         labelTickMinZ.sprite.position.set(dataViewCube.maxX + 5, dataViewCube.minY, dataViewCube.minZ);
         labelTickMaxZ.sprite.position.set(dataViewCube.maxX + 5, dataViewCube.minY, dataViewCube.maxZ);
         
-        sceneData.add(labelTickMinX.sprite);
-        sceneData.add(labelTickMaxX.sprite);
-        sceneData.add(labelTickMinY.sprite);
-        sceneData.add(labelTickMaxY.sprite);
-        sceneData.add(labelTickMinZ.sprite);
-        sceneData.add(labelTickMaxZ.sprite);
+        scene.add(labelTickMinX.sprite);
+        scene.add(labelTickMaxX.sprite);
+        scene.add(labelTickMinY.sprite);
+        scene.add(labelTickMaxY.sprite);
+        scene.add(labelTickMinZ.sprite);
+        scene.add(labelTickMaxZ.sprite);
     }
     
     // Update tick labels
@@ -371,7 +395,7 @@ var pca3d = (function (model, config) {
         var step = dataViewCube.sideSize / 10;
         
         if (grid) {
-            sceneData.remove(grid);
+            scene.remove(grid);
         }
         
         for (var x = dataViewCube.minX; x <= dataViewCube.maxX; x += step) {
@@ -401,38 +425,56 @@ var pca3d = (function (model, config) {
         grid = new THREE.LineSegments(geometry, material);
         
         if (config.grid) {
-            sceneData.add(grid);
+            scene.add(grid);
         }
     };
     
     // Draw data
     var drawData = function() {
-        var geometry = new THREE.Geometry();
-        var material = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: config.pointSize,
-            sizeAttenuation: false,
-            transparent: true,
-            map: sphere,
-            opacity: config.pointOpacity,
-            vertexColors: THREE.VertexColors
-        });
-        
-//        material.alphaTest = 0.5;
-        material.alphaTest = 0.3;
-        
-        if (particles) {
-            sceneData.remove(particles);
-        }
-
-        for (var j = 0; j < model.activeElements.length; j++) {
-            var i = model.activeElements[j];
-            geometry.vertices.push(new THREE.Vector3(model.data[i][config.xAttribute], model.data[i][config.yAttribute], model.data[i][config.zAttribute]));
-            geometry.colors.push(new THREE.Color(model.data[i][config.colorAttribute]));
+        for (var group in model.pointsByGroup) {
+            var particles = scene.getObjectByName(group);
+            if ((particles !== undefined) && (particles !== null)) {
+                scene.remove(particles);
+            }
         }
         
-        particles = new THREE.Points(geometry, material);
-        sceneData.add(particles);
+        particlesByGroup = {};
+        particlesInScene = [];
+        
+        // Prepare all particles.
+        for (var group in model.pointsByGroup) {
+            var geometry = new THREE.Geometry();
+            var points = model.pointsByGroup[group];
+            var symbol = model.groups[group].symbol;
+            var color = model.groups[group].color;
+            
+            var material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: config.pointSize,
+                sizeAttenuation: false,
+                transparent: true,
+                map: symbols[symbol],
+                opacity: model.groups[group].opacity,
+                vertexColors: THREE.VertexColors
+            });
+            material.alphaTest = 0.3;
+            
+            for (var i = 0; i < points.length; i++) {
+                var j = points[i];
+                geometry.vertices.push(
+                    new THREE.Vector3(model.points[j].loc[config.xDim], model.points[j].loc[config.yDim], model.points[j].loc[config.zDim]));
+                geometry.colors.push(new THREE.Color(color));
+            }
+            var particles = new THREE.Points(geometry, material);
+            particles.name = group;
+            particlesByGroup[group] = particles;
+        }
+        
+        // Initially add to the scene partincles only for active(selected by user) groups.
+        for (var group in model.activeGroups) {
+            scene.add(particlesByGroup[group]);
+            particlesInScene.push(particlesByGroup[group]);
+        }
     };
     
     // Draw square for point selection
@@ -477,38 +519,41 @@ var pca3d = (function (model, config) {
         geometry.vertices.push(new THREE.Vector3(-0.5, 0.5, -0.5));
         
         selection = new THREE.LineSegments(geometry, material);
+        selectionId = selection.id;
     };
     
     // Draw neighbors
     var drawNeighbors = function() {
         if (neighbors) {
-            sceneData.remove(neighbors);
+            scene.remove(neighbors);
             neighbors = null;
         }
         
-        if (model.nearestActiveNeighbors.length > 0) {
-            var selected = model.getSelectedActiveElement();
+        if (model.nearestNeighbors.length > 0) {
+            var s = model.getSelection();
             
             var material = new THREE.LineBasicMaterial({color: 0x555555, linewidth: 1});
             var geometry = new THREE.Geometry();
             
-            var x0 = particles.geometry.vertices[selected].x;
-            var y0 = particles.geometry.vertices[selected].y;
-            var z0 = particles.geometry.vertices[selected].z;
+            var x0 = particlesByGroup[s.group].geometry.vertices[s.index].x;
+            var y0 = particlesByGroup[s.group].geometry.vertices[s.index].y;
+            var z0 = particlesByGroup[s.group].geometry.vertices[s.index].z;
             var x = 0;
             var y = 0;
             var z = 0;
             
-            for (var i = 0; i < model.nearestActiveNeighbors.length; i++) {
-                x = particles.geometry.vertices[model.nearestActiveNeighbors[i]].x;
-                y = particles.geometry.vertices[model.nearestActiveNeighbors[i]].y;
-                z = particles.geometry.vertices[model.nearestActiveNeighbors[i]].z;
+            for (var i = 0; i < model.nearestNeighbors.length; i++) {
+                particle = model.nearestNeighbors[i];
+                particlesInGroup = particlesByGroup[particle.group];
+                x = particlesInGroup.geometry.vertices[particle.index].x;
+                y = particlesInGroup.geometry.vertices[particle.index].y;
+                z = particlesInGroup.geometry.vertices[particle.index].z;
                 geometry.vertices.push(new THREE.Vector3(x0, y0, z0));
                 geometry.vertices.push(new THREE.Vector3(x, y, z));
             }
             
             neighbors = new THREE.LineSegments(geometry, material);
-            sceneData.add(neighbors);
+            scene.add(neighbors);
         }
     }
 
@@ -523,127 +568,137 @@ var pca3d = (function (model, config) {
     
     // On mouse click inside canvas
     var onMouseClickInsideCanvas = function() {
-        if (picked) {
-            var selected = model.getSelectedActiveElement();
-            if (picked != selected) {
-                model.selectActiveElement(picked);
+        if ((picked.group != null) && (picked.index != null)) {
+            if (model.isPointSelected(picked.group, picked.index)) {
+                model.selectPoint(null, null);
             } else {
-                model.selectActiveElement(null);
+                model.selectPoint(picked.group, picked.index);
             }
         }
     };
     
     // Change selected object
-    var changeSelection = function(selected) {
-        selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, particles.geometry.vertices[selected].z);
+    var changeSelection = function(group, index) {
+        selection.position.set(particlesByGroup[group].geometry.vertices[index].x, particlesByGroup[group].geometry.vertices[index].y, particlesByGroup[group].geometry.vertices[index].z);
     }
     
     // Rescale selection shape
     var rescaleSelection = function() {
-        var distance = cameraData.position.distanceTo(selection.position);
-        var vFOV = cameraData.fov * Math.PI / 180;
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var scale = (width / canvas.width) * config.pointSize * window.devicePixelRatio;
+        var vFOV = camera.fov * Math.PI / 180;
+        var distance = 0;
+        var width = 0;
+        var scale = 0;
+        
+        distance = camera.position.distanceTo(selection.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        scale = (width / canvas.width) * config.pointSize * window.devicePixelRatio;
         selection.scale.set(scale, scale, scale);
         
-        var distance = cameraData.position.distanceTo(labelX.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelX.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelX.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelY.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelY.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelY.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelZ.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelZ.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelTickMinX.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelTickMinX.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMinX.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelTickMaxX.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelTickMaxX.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMaxX.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelTickMinY.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelTickMinY.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMinY.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelTickMaxY.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelTickMaxY.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMaxY.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelTickMinZ.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelTickMinZ.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMinZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
         
-        var distance = cameraData.position.distanceTo(labelTickMaxZ.sprite.position);
-        var width = 2 * Math.tan(vFOV / 2) * distance;
-        var textScale = (width / canvas.width) * window.devicePixelRatio;
+        distance = camera.position.distanceTo(labelTickMaxZ.sprite.position);
+        width = 2 * Math.tan(vFOV / 2) * distance;
+        textScale = (width / canvas.width) * window.devicePixelRatio;
         labelTickMaxZ.sprite.scale.set(textScale * 120, textScale * 60, 1);
     }
     
     // Find 3D object under mouse pointer
     var updatePicked = function() {
-        raycaster.setFromCamera(mouse2d, cameraData);
-        intersects = raycaster.intersectObject(particles);
+        raycaster.setFromCamera(mouse2d, camera);
+        intersects = raycaster.intersectObjects(particlesInScene);
         if (intersects.length > 0) {
-            picked = intersects[0].index;
+            picked.group = intersects[0].object.name;
+            picked.index = intersects[0].index;
         } else {
-            picked = null;
+            picked.group = null;
+            picked.index = null;
         }
     };
     
     // Highlight picked 3D object
     var highlightPicked = function() {
-        if (picked != highlighted) {
-            if (highlighted != null) {
-                particles.geometry.colors[highlighted] = new THREE.Color(model.data[model.getElement(highlighted)][config.colorAttribute]);
+        if ((picked.group != highlighted.group) || (picked.index != highlighted.index)) {
+            if ((highlighted.group != null) && (highlighted.index != null)) {
+                particlesByGroup[highlighted.group].geometry.colors[highlighted.index] = new THREE.Color(model.groups[highlighted.group].color);
+                particlesByGroup[highlighted.group].geometry.colorsNeedUpdate = true;
             }
-            if (picked != null) {
-                particles.geometry.colors[picked] = new THREE.Color(0xff00ff);
+            if ((picked.group != null) && (picked.index != null)) {
+                particlesByGroup[picked.group].geometry.colors[picked.index] = new THREE.Color(0xff00ff);
+                particlesByGroup[picked.group].geometry.colorsNeedUpdate = true;
             }
-            particles.geometry.colorsNeedUpdate = true;
-            highlighted = picked;
+            highlighted.group = picked.group;
+            highlighted.index = picked.index;
         }
     };
     
     // Create/remove tooltip
     var updateTooltip = function() {
-        if (picked != tooltip) {
+        if ((picked.group != tooltip.group) || (picked.index != tooltip.index)) {
             d3.select("#tooltip").remove();
-            if (picked != null) {
-                var element = model.getElement(picked);
-                
+            if ((picked.group != null) && (picked.index != null)) {
+                var point = model.getPoint(picked.group, picked.index);
                 var coordinate = mouse;
+                var html = point.id + "</br>" + point.grp;
+                if (point.pop) {
+                    html += " (" + point.pop + ")";
+                }
+                html += "</br>" + model.dimensions[config.xDim] + "=" + point.loc[config.xDim] + 
+                    "</br>" + model.dimensions[config.yDim] + "=" + point.loc[config.yDim]
                 d3.select("body").append("div")
                     .attr("id", "tooltip")
                     .style("left", (coordinate.x + 10) + "px")
                     .style("top", (coordinate.y - 30) + "px")
-                    .html(model.data[element][config.nameAttribute] + 
-                        "</br>" + model.data[element][config.groupAttribute] + " (" + model.data[element][config.subgroupAttribute] + ")" +
-                          "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] + 
-                          "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute] + 
-                          "</br>" + config.zAttribute + "=" + model.data[element][config.zAttribute]);
+                    .html(html);
             }
-            tooltip = picked;
+            tooltip.group = picked.group;
+            tooltip.index = picked.index;
         }
     };
     
     // Initialize GL
     var initializeGL = function() {
-        sceneData = new THREE.Scene();
-        cameraData = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, dataViewCube.sideSize * 20);
-        cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
+        scene = new THREE.Scene();
+        
+        camera = new THREE.PerspectiveCamera(45, canvas.width / canvas.height, 0.1, dataViewCube.sideSize * 20);
+        camera.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
                         
         renderer = new THREE.WebGLRenderer({
             canvas: canvas,
@@ -652,13 +707,14 @@ var pca3d = (function (model, config) {
         renderer.setSize(canvas.width, canvas.height);
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setClearColor(0xffffff);
+        renderer.autoClear = true;
 
         raycaster = new THREE.Raycaster();
     }
     
     // Initialize controls.
     var initializeControls = function() {
-        controls = new THREE.TrackballControls(cameraData, canvas);
+        controls = new THREE.TrackballControls(camera, canvas);
         controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
         controls.rotateSpeed = 2.0;
         controls.zoomSpeed = 1.2;
@@ -679,11 +735,11 @@ var pca3d = (function (model, config) {
         drawGrid();
         drawAxes();  
         drawSelection();
-
-        var selected = model.getSelectedActiveElement();
-        if (selected) {
-            changeSelection(selected);
-            sceneData.add(selection);
+        
+        if (model.hasSelectedPoint()) {
+            var s = model.getSelection();
+            changeSelection(s.group, s.index);
+            scene.add(selection);
             drawNeighbors();
         }
     };
@@ -700,7 +756,7 @@ var pca3d = (function (model, config) {
         updateTooltip();
         rescaleSelection();
         
-        renderer.render(sceneData, cameraData);
+        renderer.render(scene, camera);
     };
     
     var drawLegend = function() {
@@ -710,17 +766,7 @@ var pca3d = (function (model, config) {
         var starty = 90;
         var stepy = -5;
         
-        var material = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: 10,
-            sizeAttenuation: false,
-            transparent: true,
-            map: sphere,
-            vertexColors: THREE.VertexColors
-        });
-        
         var scene = new THREE.Scene();
-        var geometry = new THREE.Geometry();
         var name = null;
         
         name = createLabel("Reference", "Arial", labelfontsize, "", "right", 500);
@@ -729,21 +775,31 @@ var pca3d = (function (model, config) {
         scene.add(name.sprite);
         starty += stepy;
         
-        for (var i = 0; i < model.groups.length; i++) {
-            if (!model.activeGroups.hasOwnProperty(model.groups[i].name)) {
+        for (var group in model.groups) {
+            if (!model.isGroupActive(group)) {
                 continue;
             }
-            if (model.studyGroups.hasOwnProperty(model.groups[i].name)) {
+            if (!model.groups[group].reference) {
                 continue;
             }
-            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right", 500);
+            var geometry = new THREE.Geometry();
+            var material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 10,
+                sizeAttenuation: false,
+                transparent: true,
+                map: symbols[model.groups[group].symbol],
+                vertexColors: THREE.VertexColors
+            });
+            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
+            geometry.colors.push(new THREE.Color(model.groups[group].color));
+            scene.add(new THREE.Points(geometry, material));
+            
+            name = createLabel(group, "Arial", groupfontsize, "", "right", 500);
             name.sprite.scale.set(70, 35, 1);
             name.sprite.position.set(starx + 5, starty, 0);
-            
-            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
-            geometry.colors.push(new THREE.Color(model.groups[i].color));
-            
             scene.add(name.sprite);
+            
             starty += stepy;
         }
         
@@ -755,25 +811,33 @@ var pca3d = (function (model, config) {
         scene.add(name.sprite);
         starty += stepy;
         
-        for (var i = 0; i < model.groups.length; i++) {
-            if (!model.activeGroups.hasOwnProperty(model.groups[i].name)) {
+        for (var group in model.groups) {
+            if (!model.isGroupActive(group)) {
                 continue;
             }
-            if (!model.studyGroups.hasOwnProperty(model.groups[i].name)) {
+            if (model.groups[group].reference) {
                 continue;
             }
-            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right", 500);
+            var geometry = new THREE.Geometry();
+            var material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 10,
+                sizeAttenuation: false,
+                transparent: true,
+                map: symbols[model.groups[group].symbol],
+                vertexColors: THREE.VertexColors
+            });
+            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
+            geometry.colors.push(new THREE.Color(model.groups[group].color));
+            scene.add(new THREE.Points(geometry, material));
+            
+            name = createLabel(group, "Arial", groupfontsize, "", "right", 500);
             name.sprite.scale.set(70, 35, 1);
             name.sprite.position.set(starx + 5, starty, 0);
-            
-            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
-            geometry.colors.push(new THREE.Color(model.groups[i].color));
-            
             scene.add(name.sprite);
+            
             starty += stepy;
         }
-        
-        scene.add(new THREE.Points(geometry, material));
         
         return scene;
     }
@@ -782,8 +846,7 @@ var pca3d = (function (model, config) {
         var canvasScreen = document.createElement("canvas");
         canvasScreen.width = 500;
         canvasScreen.height = 500;
-        
-            
+                
         var rendererScreen = new THREE.WebGLRenderer({
             canvas: canvasScreen,
             reserveDrawingBuffer: true,
@@ -795,7 +858,7 @@ var pca3d = (function (model, config) {
         rendererScreen.autoClear = false;
 
         rendererScreen.clear();
-        rendererScreen.render(sceneData, cameraData);
+        rendererScreen.render(scene, camera);
         
         if (legend == true) {
             var cameraLegend = new THREE.OrthographicCamera(-100, 100, 100, -100, 0, 100);
@@ -809,13 +872,13 @@ var pca3d = (function (model, config) {
     }
     
     var updateView = function() {
-        calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
+        calculateDataBoundingBox(config.xDim, config.yDim, config.zDim);
         calculateDataViewCube();
         
-        cameraData.zoom = 1;
-        cameraData.up.set(0, 1, 0);
-        cameraData.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
-        cameraData.updateProjectionMatrix();
+        camera.zoom = 1;
+        camera.up.set(0, 1, 0);
+        camera.position.set(3 * dataViewCube.maxX, 3 * dataViewCube.maxY, 3 * dataViewCube.maxZ);
+        camera.updateProjectionMatrix();
         
         controls.target.set(dataViewCube.centerX, dataViewCube.centerY, dataViewCube.centerZ);
         
@@ -823,9 +886,9 @@ var pca3d = (function (model, config) {
         drawGrid();
         drawAxes();
         
-        var selected = model.getSelectedActiveElement();
-        if (selected) {
-            changeSelection(selected);
+        if (model.hasSelectedPoint()) {
+            var point = model.getSelection();
+            changeSelection(point.group, point.index);
             drawNeighbors();
         }
     }
@@ -837,30 +900,30 @@ var pca3d = (function (model, config) {
     
     this.setPointSize = function(size) {
         config.pointSize = size;
-        if (particles) {
-            particles.material.size = size;
+        for (var group in particlesByGroup) {
+            particlesByGroup[group].material.size = size;
         }
     }
     
     this.setPointOpacity = function(alpha) {
         config.pointOpacity = alpha;
-        if (particles) {
-            particles.material.opacity = alpha;
+        for (var group in particlesByGroup) {
+            particlesByGroup[group].material.opacity = alpha;
         }
     }
        
-    this.setXCoordinateAttr = function(name) {
-        config.xAttribute = name;
+    this.setXDimension = function(dim) {
+        config.xDim = dim;
         updateView();
     };
     
-    this.setYCoordinateAttr = function(name) {
-        config.yAttribute = name;
+    this.setYDimension = function(dim) {
+        config.yDim = dim;
         updateView();
     };
     
-    this.setZCoordinateAttr = function(name) {
-        config.zAttribute = name;
+    this.setZDimension = function(dim) {
+        config.zDim = dim;
         updateView();
     };
 
@@ -873,7 +936,11 @@ var pca3d = (function (model, config) {
     };
     
     this.deactivate = function() {
-        model.removeListener("pca3d");
+        model.removeListener("onGroupChange", "pca3d");
+        model.removeListener("onSelectionChange", "pca3d");
+        model.removeListener("onNeighborsChange", "pca3d");
+        model.removeListener("onGroupColorChange", "pca3d");
+        model.removeListener("onGroupOpacityChange", "pca3d");
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
         d3.select(config.canvasId).on("click", null);
@@ -886,7 +953,7 @@ var pca3d = (function (model, config) {
         if (grid) {
             if (!config.grid) {
                 config.grid = true;
-                sceneData.add(grid);
+                scene.add(grid);
             }
         }
     }
@@ -895,32 +962,62 @@ var pca3d = (function (model, config) {
          if (grid) {
             if (config.grid) {
                 config.grid = false;
-                sceneData.remove(grid);
+                scene.remove(grid);
             }
         }
     }
            
-    calculateDataBoundingBox(config.xAttribute, config.yAttribute, config.zAttribute);
+    calculateDataBoundingBox(config.xDim, config.yDim, config.zDim);
     calculateDataViewCube();
-
-    model.addListener("pca3d", function(dataChanged, selectionChanged, neighborsChanged) {
-        if (dataChanged) {
-            drawData();
-            drawGrid();
-            drawAxes();
-        }
-        
-        if (selectionChanged) {
-            var selected = model.getSelectedActiveElement();
-            sceneData.remove(selection);   
-            if (selected) {
-                changeSelection(selected);
-                sceneData.add(selection);
+    
+    model.addListener("onGroupChange", "pca3d", function() {
+        particlesInScene = [];
+        for (var group in particlesByGroup) {
+            var particles = scene.getObjectByName(group);
+            if (!model.isGroupActive(group)) {
+                if ((particles !== undefined) && (particles !== null)) {
+                    scene.remove(particles);
+                }
+            } else {
+                if ((particles === undefined) || (particles === null)) {
+                    scene.add(particlesByGroup[group]);
+                }
+                particlesInScene.push(particlesByGroup[group]);
             }
         }
+    });
+    
+    model.addListener("onSelectionChange", "pca3d", function() {
+        var object = scene.getObjectById(selectionId);
         
-        if (neighborsChanged) {
-            drawNeighbors();
+        if (model.hasSelectedPoint()) {
+            var s = model.getSelection();
+            changeSelection(s.group, s.index);
+            if ((object === null) || (object === undefined)) {
+                scene.add(selection);
+            }            
+        } else {
+            if ((object !== null) && (object !== undefined)) {
+                scene.remove(selection);
+            }
         }
     });
+    
+    model.addListener("onNeighborsChange", "pca3d", function() {
+        drawNeighbors();
+    });
+    
+    model.addListener("onGroupColorChange", "pca3d", function(group) {
+        var colors = particlesByGroup[group].geometry.colors;
+        var newColor = model.groups[group].color;
+        for (var i = 0; i < colors.length; i++) {
+            colors[i] = new THREE.Color(newColor);    
+        }
+        particlesByGroup[group].geometry.colorsNeedUpdate = true;
+    });
+    
+    model.addListener("onGroupOpacityChange", "pca3d", function(group) {
+        particlesByGroup[group].material.opacity = groups[group].opacity;
+    });
+    
 });
