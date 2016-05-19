@@ -579,7 +579,7 @@
         /* END: Add export controls */
         
         /* BEGIN: Piechart */
-        addSliderControl(piecontrolsDiv, "pc", "Principal components", 1, dimensions.length, model.getActiveDimensions(), function(value) {
+        addSliderControl(piecontrolsDiv, "pc", "Principal components", 1, dimensions.length / 2, model.getActiveDimensions(), function(value) {
             model.setActiveDimensions(value);
         });
         
