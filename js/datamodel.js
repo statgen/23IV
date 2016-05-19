@@ -24,6 +24,19 @@ var DataModel = (function (groups, dimensions, points) {
     var maxNearestNeighbors = 0;
     var sortedAllNeighbors = null;
     // END.
+                 
+    // BEGIN: Append negative dimensions i.e. -PC1, -PC2, etc.
+    var k = this.dimensions.length;
+    for (var i = 0; i < k; i++) {
+        this.dimensions.push("-" + this.dimensions[i]);
+    }
+    
+    for (var i = 0; i < this.points.length; i++) {
+        for (var j = 0; j < k; j++) {
+            this.points[i].loc.push(-this.points[i].loc[j]);
+        }
+    }
+    // END.
     
     // BEGIN: (a) Split points into arrays by group. (b) Assign default opacity to each group. (c) Set active groups (initially all groups are active).
     for (var group in this.groups) {
