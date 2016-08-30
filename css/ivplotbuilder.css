@@ -1,0 +1,106 @@
+#iv-plot {
+    position: relative;
+    width: 880px;
+    height: 510px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#iv-legend {
+    position: absolute;
+    top: 5%;
+    width: 250px;
+    right: 0px;
+}
+
+#iv-controls {
+    position: absolute;
+    top: 5%;
+    width: 120px;
+    left: 0px;
+}
+
+#iv-canvas {
+    background-color: #ffffff;
+    border: 1px solid #ffffff;
+    position: absolute;
+    top: 0px;
+    left: 120px;
+    z-index: 1;
+}
+
+#iv-tooltip {
+    position: absolute;
+    color: #ffffff;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-style: solid;
+    border-width: 1px;
+    border-color: black;
+    border-radius: 4px;
+    -moz-border-radius: 4px;
+    text-align: center;
+    padding: 3px;
+    z-index: 1000;
+    -ms-transform: translate(-49%, -100%); /* IE 9 */
+   	-webkit-transform: translate(-49%, -100%); /* Safari */
+    transform: translate(-49%, -100%);
+}
+
+
+#iv-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: black transparent transparent transparent;
+}
+
+
+#iv-pie {
+    position: relative;
+    width: 880px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#iv-pie-label {
+    position: absolute;
+    width: 100%;
+    top: 0%;
+    left: 0px;
+}
+
+#iv-pie-alert {
+    position: absolute;
+    width: 540px;
+    top: 40px;
+    left: 0px;
+}
+
+#iv-pie-display {
+    position: absolute;
+    width: 540px;
+    top: 40px;
+    left: 0px;
+}
+
+#iv-pie-controls {
+    position: absolute;
+    width: 200px;
+    left: 0px;
+}
+
+#iv-pie-svg {
+    position: absolute;
+    width: 200px;
+    left: 200px;
+}
+
+#iv-pie-legend {
+    position: absolute;
+    width: 140px;
+    left: 400px;
+}

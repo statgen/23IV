@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css">
+<!--        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">-->
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.3.3/css/bootstrap-colorpicker.min.css">
+        
+        <link rel="stylesheet" href="css/ivplotbuilder.css">
+        <link rel="stylesheet" href="css/ivfilereader.css">
+        
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/twitter-bootstrap/2.3.2/js/bootstrap.min.js"></script>
+<!--        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/js/bootstrap.min.js" integrity="sha384-0mSbJDEHialfmuBBQP6A4Qrprq5OVfW37PRR3j5ELqxss1yVqOtnepnHVP9aJ7xS" crossorigin="anonymous"></script>-->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-colorpicker/2.3.3/js/bootstrap-colorpicker.min.js"></script>
+        <script src="http://d3js.org/d3.v3.min.js"></script>
+        
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r75/three.min.js"></script>
+        <script src="http://mrdoob.github.io/three.js/examples/js/controls/TrackballControls.js"></script>
+        <script src="http://mrdoob.github.io/three.js/examples/js/controls/OrthographicTrackballControls.js"></script>
+        
+        <script src="js/ivdatamodel.js"></script>
+        <script src="js/iv2d.js"></script>
+        <script src="js/iv3d.js"></script>
+        <script src="js/ivplotbuilder.js"></script>
+        <script src="js/ivfilereader.js"></script>
+        
+    </head>
+    <body>
+        <div class="container">
+            <div id="iv-plot-form">
+                <div id="iv-file-select-form">
+                    <div>
+                        <span class="btn btn-default iv-btn-file">
+                            <i class="icon-folder-open"></i>
+                            Browse
+                            <input type="file" id="iv-file-input" name="file">
+                        </span>
+                    </div>
+                    <div class="iv-file-drop-zone" id="iv-file-drop-zone">
+                        Or drag and drop your file here
+                    </div>
+                    <div class="iv-file-select-tip">
+                        * Input file must have following tab separated columns: 'popID', 'indivID', 'PC1', 'PC2', and so on.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+                $(document).ready(function() {
+                    document.getElementById("iv-file-input").addEventListener("change", IVFileReader.fileInputChangeEventHandler, false);
+                    document.getElementById("iv-file-drop-zone").addEventListener("dragover", IVFileReader.fileDragOverEventHandler, false);
+                    document.getElementById("iv-file-drop-zone").addEventListener("drop", IVFileReader.fileDropEventHandler, false);
+                    IVPlotBuilder.setConfig({
+                        canvasId: "#iv-canvas",
+                        nameAttribute: "name",
+                        groupAttribute: "group",
+                        colorAttribute: "color",
+                        subgroupAttribute: "population",
+                        symbols_2d: [
+                            "textures/2d_0.png",
+                            "textures/2d_1.png",
+                            "textures/2d_2.png",
+                            "textures/2d_3.png",
+                            "textures/2d_4.png",
+                            "textures/2d_5.png",
+                            "textures/2d_6.png"
+                        ],
+                        symbols_3d: [
+                            "textures/2d_0.png",
+                            "textures/2d_1.png",
+                            "textures/2d_2.png",
+                            "textures/2d_3.png",
+                            "textures/2d_4.png",
+                            "textures/2d_5.png",
+                            "textures/2d_6.png"
+                        ],
+                        xDim: 0,
+                        yDim: 1,
+                        zDim: 2,
+                        pointSize: 10,
+                        pointOpacity: 0.7,
+                        grid: true,
+                        initK: 10
+                    });
+                });
+        </script>
+    </body>
+</html>

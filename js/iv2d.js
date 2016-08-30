@@ -1,4 +1,4 @@
-var pca2d = (function (model, config) {
+var IV2D = (function (model, config) {
     
     var canvas = d3.select(config.canvasId).node();
     var originalCanvasWidth = canvas.width;
@@ -50,13 +50,15 @@ var pca2d = (function (model, config) {
     var sceneData = null;
     var sceneAxes = null;
     var sceneGrid = null;
+    var sceneSelection = null;
+    var sceneNeighbors = null;
+    
     var cameraData = null;
     var cameraAxes = null;
-    var cameraGrid = null;
     var renderer = null;
     var raycaster = null;
     var controls = null;
-    var particles = null;
+    var particlesByGroup = null;
     var grid = null;
     var selection = null;
     var neighbors = null;
@@ -70,29 +72,49 @@ var pca2d = (function (model, config) {
     var labelTickMaxY = null;
     
     // Mouse position in window
-    var mouse = {x: 0, y: 0};
+    var mouse = {
+        x: 0, 
+        y: 0
+    };
+    
     // Normalized mouse position in canvas
     var mouse2d = new THREE.Vector2();
     
-    // Currently picked object ID
-    var picked = null;
-    // Currently tipped objtect ID
-    var tooltip = null;
-    // Currently highlighted object ID
-    var highlighted = null;
+    // Currently picked object
+    var picked = {
+        group: null,
+        index: null
+    };
+
+    // Currently highlighted object
+    var highlighted = {
+        group: null,
+        index: null
+    };
     
-    var circle = new THREE.TextureLoader().load("textures/circle.png");
-                
+    // Currently tipped objtect
+    var tooltip = {
+        group: null,
+        index: null
+    };
+    
+    var symbols = new Array(config.symbols_2d.length);
+    
+    // Initialize symbols
+    for (var i = 0; i < symbols.length; i++) {
+        symbols[i] = new THREE.TextureLoader().load(config.symbols_2d[i]);
+    }
+      
     // Calculate bouding rectangle for data
-    var calculateDataBoundingRectangle = function(xDimName, yDimName) {
+    var calculateDataBoundingRectangle = function(xDim, yDim) {
         dataBoundingRectangle.minX = Number.MAX_VALUE;
         dataBoundingRectangle.minY = Number.MAX_VALUE;
         dataBoundingRectangle.maxX = 0;
         dataBoundingRectangle.maxY = 0;
             
-        for (var i = 0; i < model.data.length; i++) {
-            x = model.data[i][xDimName];
-            y = model.data[i][yDimName];
+        for (var i = 0; i < model.points.length; i++) {
+            x = model.points[i].loc[xDim];
+            y = model.points[i].loc[yDim];
             if (x > dataBoundingRectangle.maxX) { dataBoundingRectangle.maxX = x; }
             if (x < dataBoundingRectangle.minX) { dataBoundingRectangle.minX = x; }
             if (y > dataBoundingRectangle.maxY) { dataBoundingRectangle.maxY = y; }
@@ -112,17 +134,35 @@ var pca2d = (function (model, config) {
         dataViewSquare.maxX = Math.ceil(dataBoundingRectangle.maxX);
         dataViewSquare.minY = Math.floor(dataBoundingRectangle.minY);
         dataViewSquare.maxY = Math.ceil(dataBoundingRectangle.maxY);
-                   
+        
         dataViewSquare.sideSize = Math.max(dataViewSquare.maxX - dataViewSquare.minX, dataViewSquare.maxY - dataViewSquare.minY);
         
         if (dataViewSquare.maxX - dataViewSquare.minX < dataViewSquare.sideSize) {
             var append = dataViewSquare.sideSize - dataViewSquare.maxX + dataViewSquare.minX;
-            dataViewSquare.minX = dataViewSquare.minX - Math.floor(append / 2);
-            dataViewSquare.maxX = dataViewSquare.maxX + Math.ceil(append / 2);            
+//            console.log("append X = "  + append);
+            while (append > 0) {
+                if (Math.abs(dataViewSquare.minX) < Math.abs(dataViewSquare.maxX)) {
+                    dataViewSquare.minX = dataViewSquare.minX - 1;
+                } else {
+                    dataViewSquare.maxX = dataViewSquare.maxX + 1;
+                }
+                append--;
+            }            
+//          dataViewSquare.minX = dataViewSquare.minX - Math.floor(append / 2);
+//          dataViewSquare.maxX = dataViewSquare.maxX + Math.ceil(append / 2);                     
         } else if (dataViewSquare.maxY - dataViewSquare.minY < dataViewSquare.sideSize) {
             var append = dataViewSquare.sideSize - dataViewSquare.maxY + dataViewSquare.minY;
-            dataViewSquare.minY = dataViewSquare.minY - Math.floor(append / 2);
-            dataViewSquare.maxY = dataViewSquare.maxY + Math.ceil(append / 2);
+//            console.log("append Y = "  + append);
+            while (append > 0) {
+                if (Math.abs(dataViewSquare.minY) < Math.abs(dataViewSquare.maxY)) {
+                    dataViewSquare.minY = dataViewSquare.minY - 1;
+                } else {
+                    dataViewSquare.maxY = dataViewSquare.maxY + 1;
+                }
+                append--;
+            }            
+//          dataViewSquare.minY = dataViewSquare.minY - Math.floor(append / 2);
+//          dataViewSquare.maxY = dataViewSquare.maxY + Math.ceil(append / 2);
         }
                     
         var unit = dataViewSquare.sideSize / (axesViewSquare.sideSize - 2 * axesViewSquare.margin);
@@ -308,8 +348,8 @@ var pca2d = (function (model, config) {
         sceneAxes.add(labelTickMinY.sprite);
         sceneAxes.add(labelTickMaxY.sprite);
             
-        labelX = createLabel(config.xAttribute, "Arial", 24, "bottom", "");
-        labelY = createLabel(config.yAttribute, "Arial", 24, "", "left");
+        labelX = createLabel(model.dimensions[config.xDim], "Arial", 24, "bottom", "");
+        labelY = createLabel(model.dimensions[config.yDim], "Arial", 24, "", "left");
             
         labelX.sprite.position.set(0, axesViewSquare.xAxis.start.y - axesViewSquare.labelOffset, 0);
         labelY.sprite.position.set(axesViewSquare.yAxis.start.x - axesViewSquare.labelOffset, 0, 0);
@@ -320,32 +360,55 @@ var pca2d = (function (model, config) {
     
     // Draw data
     var drawData = function() {
-        var geometry = new THREE.Geometry();
-        
-        var material = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: config.pointSize,
-            sizeAttenuation: false,
-            transparent: true,
-            map: circle,
-            opacity: config.pointOpacity,
-            vertexColors: THREE.VertexColors
-        });
-        
-        material.depthWrite = false;
-          
-        if (particles) {
-            sceneData.remove(particles);
-        }
-
-        for (var j = 0; j < model.activeElements.length; j++) {
-            var i = model.activeElements[j];
-            geometry.vertices.push(new THREE.Vector3(model.data[i][config.xAttribute], model.data[i][config.yAttribute], 0));
-            geometry.colors.push(new THREE.Color(model.data[i][config.colorAttribute]));
+        for (var group in model.pointsByGroup) {
+            var particles = sceneData.getObjectByName(group);
+            if ((particles !== undefined) && (particles !== null)) {
+                sceneData.remove(particles);
+            }
         }
         
-        particles = new THREE.Points(geometry, material);
-        sceneData.add(particles);
+        particlesByGroup = {};
+    
+        // Prepare all particles.
+        for (var group in model.pointsByGroup) {
+            var geometry = new THREE.Geometry();
+            var points = model.pointsByGroup[group];
+            var symbol = model.groups[group].symbol;
+            var color = model.groups[group].color;
+            
+            var material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: config.pointSize,
+                sizeAttenuation: false,
+                transparent: true,
+                map: symbols[symbol],
+                opacity: model.groups[group].opacity,
+                vertexColors: THREE.VertexColors
+            });
+            material.depthWrite = false;
+            
+            for (var i = 0; i < points.length; i++) {
+                var j = points[i];
+                geometry.vertices.push(
+                    new THREE.Vector3(model.points[j].loc[config.xDim], model.points[j].loc[config.yDim], 0));
+                geometry.colors.push(new THREE.Color(color));
+            }
+            
+            var particles = new THREE.Points(geometry, material);
+            particles.name = group;
+            particlesByGroup[group] = particles;
+        }
+        
+        // Initially add to the scene partincles only for active(selected by user) groups.
+        for (var group in model.activeGroups) {
+            sceneData.add(particlesByGroup[group]);
+            // raycaster doesn't work when there is only one point. I think this is because boundingSphere.radius is 0.
+            // Let's fix it by setting hardcoded radius
+            if (particlesByGroup[group].geometry.vertices.length == 1) { 
+                particlesByGroup[group].geometry.computeBoundingSphere();
+                particlesByGroup[group].geometry.boundingSphere.radius = 1;
+            }
+        }
     };
     
     // Draw grid
@@ -392,57 +455,64 @@ var pca2d = (function (model, config) {
     // Draw neighbors
     var drawNeighbors = function() {
         if (neighbors) {
-            sceneData.remove(neighbors);
+            sceneNeighbors.remove(neighbors);
             neighbors = null;
         }
         
-        if (model.nearestActiveNeighbors.length > 0) {
-            var selected = model.getSelectedActiveElement();
-
+        if (model.nearestNeighbors.length > 0) {
+            var s = model.getSelection();
+            
             var material = new THREE.LineBasicMaterial({color: 0x555555, linewidth: 1});
             var geometry = new THREE.Geometry();
             
-            var x0 = particles.geometry.vertices[selected].x;
-            var y0 = particles.geometry.vertices[selected].y;
+            var x0 = particlesByGroup[s.group].geometry.vertices[s.index].x;
+            var y0 = particlesByGroup[s.group].geometry.vertices[s.index].y;
             var x = 0;
             var y = 0;
+            var particle = null;
+            var particlesInGroup = null;
             
-            for (var i = 0; i < model.nearestActiveNeighbors.length; i++) {
-                x = particles.geometry.vertices[model.nearestActiveNeighbors[i]].x;
-                y = particles.geometry.vertices[model.nearestActiveNeighbors[i]].y;
+            for (var i = 0; i < model.nearestNeighbors.length; i++) {
+                particle = model.nearestNeighbors[i];
+                particlesInGroup = particlesByGroup[particle.group];
+                x = particlesInGroup.geometry.vertices[particle.index].x;
+                y = particlesInGroup.geometry.vertices[particle.index].y;
                 geometry.vertices.push(new THREE.Vector3(x0, y0, 0));
                 geometry.vertices.push(new THREE.Vector3(x, y, 0));
             }
             
             neighbors = new THREE.LineSegments(geometry, material);
-            sceneData.add(neighbors);
+            sceneNeighbors.add(neighbors);
         }
     }
     
     // Update normalized mouse coordinates on mouse move event inside canvas
     var onMouseMoveInsideCanvas = function() {
         var boundingClientRect = canvas.getBoundingClientRect();
-        mouse.x = d3.event.x;
-        mouse.y = d3.event.y;
-        mouse2d.x = ((d3.event.x - boundingClientRect.left) / canvas.width) * 2 * window.devicePixelRatio - 1;
-        mouse2d.y = (-(d3.event.y - boundingClientRect.top) / canvas.height) * 2 * window.devicePixelRatio + 1;
+        //mouse.x = d3.event.x;
+        //mouse.y = d3.event.y;
+        mouse.x = d3.event.clientX;
+        mouse.y = d3.event.clientY;
+//        mouse2d.x = ((d3.event.x - boundingClientRect.left) / canvas.width) * 2 * window.devicePixelRatio - 1;
+//        mouse2d.y = (-(d3.event.y - boundingClientRect.top) / canvas.height) * 2 * window.devicePixelRatio + 1;
+        mouse2d.x = ((d3.event.clientX - boundingClientRect.left) / canvas.width) * 2 * window.devicePixelRatio - 1;
+        mouse2d.y = (-(d3.event.clientY - boundingClientRect.top) / canvas.height) * 2 * window.devicePixelRatio + 1;
     };
     
     // On mouse click inside canvas
     var onMouseClickInsideCanvas = function() {
-        if (picked) {
-            var selected = model.getSelectedActiveElement();
-            if (picked != selected) {
-                model.selectActiveElement(picked);
+        if ((picked.group != null) && (picked.index != null)) {
+            if (model.isPointSelected(picked.group, picked.index)) {
+                model.selectPoint(null, null);
             } else {
-                model.selectActiveElement(null);
+                model.selectPoint(picked.group, picked.index);
             }
         }
     };
     
     // Change selected object
-    var changeSelection = function(selected) {
-        selection.position.set(particles.geometry.vertices[selected].x, particles.geometry.vertices[selected].y, 0);
+    var changeSelection = function(group, index) {
+        selection.position.set(particlesByGroup[group].geometry.vertices[index].x, particlesByGroup[group].geometry.vertices[index].y, 0);
     }
     
     // Rescale selection shape
@@ -452,49 +522,73 @@ var pca2d = (function (model, config) {
         selection.scale.set(size, size, size);
     }
         
-    // Find 3D object under mouse pointer
+    // Find object under mouse pointer.
     var updatePicked = function() {
         raycaster.setFromCamera(mouse2d, cameraData);
-        intersects = raycaster.intersectObject(particles);
+//        raycaster.params.Points.threshold = config.pointSize / (2 * cameraData.zoom);
+        raycaster.params.Points.threshold = ((dataViewSquare.sideSize / canvas.width) * config.pointSize * window.devicePixelRatio) / (2 * cameraData.zoom);
+        intersects = raycaster.intersectObjects(sceneData.children); 
         if (intersects.length > 0) {
-            picked = intersects[0].index;
+            picked.group = intersects[0].object.name;
+            picked.index = intersects[0].index;
         } else {
-            picked = null;
+            picked.group = null;
+            picked.index = null;
         }
     };
     
-    // Highlight picked 3D object
+    // Highlight picked object.
     var highlightPicked = function() {
-        if (picked != highlighted) {
-            if (highlighted != null) {
-                particles.geometry.colors[highlighted] = new THREE.Color(model.data[model.getElement(highlighted)][config.colorAttribute]);
+        if ((picked.group != highlighted.group) || (picked.index != highlighted.index)) {
+            if ((highlighted.group != null) && (highlighted.index != null)) {
+                sceneData.getObjectByName(highlighted.group).geometry.colors[highlighted.index] = new THREE.Color(model.groups[highlighted.group].color);
+                sceneData.getObjectByName(highlighted.group).geometry.colorsNeedUpdate = true;
             }
-            if (picked != null) {
-                particles.geometry.colors[picked] = new THREE.Color(0xff00ff);
+            if ((picked.group != null) && (picked.index != null)) {
+                sceneData.getObjectByName(picked.group).geometry.colors[picked.index] = new THREE.Color(0xff00ff);
+                sceneData.getObjectByName(picked.group).geometry.colorsNeedUpdate = true;
             }
-            particles.geometry.colorsNeedUpdate = true;
-            highlighted = picked;
+            highlighted.group = picked.group;
+            highlighted.index = picked.index;
         }
     };
     
-    // Create/remove tooltip
+    var modelToScreenXY = function(point) {
+        var vector = new THREE.Vector3(point.loc[config.xDim], point.loc[config.yDim], 0);
+        vector.project(cameraData);
+
+        var boundingClientRect = canvas.getBoundingClientRect();
+        
+        vector.x = ((vector.x + 1) / (2 * window.devicePixelRatio)) * canvas.width + boundingClientRect.left + window.pageXOffset;
+        vector.y = -((vector.y - 1) / (2 * window.devicePixelRatio)) * canvas.height + boundingClientRect.top + window.pageYOffset;
+        
+        return {
+            x: vector.x,
+            y: vector.y
+        };
+    }
+    
+    // Create/remove tooltip.
     var updateTooltip = function() {
-        if (picked != tooltip) {
-            var element = model.getElement(picked);
-            
-            d3.select("#tooltip").remove();
-            if (picked != null) {
-                var coordinate = mouse;
+        if ((picked.group != tooltip.group) || (picked.index != tooltip.index)) {
+            d3.select("#iv-tooltip").remove();
+            if ((picked.group != null) && (picked.index != null)) {
+                var point = model.getPoint(picked.group, picked.index);
+                var coordinate = modelToScreenXY(point);
+                var html = point.id + "</br>" + point.grp;
+                if (point.pop) {
+                    html += " (" + point.pop + ")";
+                }
+                html += "</br>" + model.dimensions[config.xDim] + "=" + point.loc[config.xDim] + 
+                    "</br>" + model.dimensions[config.yDim] + "=" + point.loc[config.yDim]
                 d3.select("body").append("div")
-                    .attr("id", "tooltip")
-                    .style("left", (coordinate.x + 10) + "px")
-                    .style("top", (coordinate.y - 30) + "px")
-                    .html(model.data[element][config.nameAttribute] + 
-                          "</br>" + model.data[element][config.groupAttribute] + " (" + model.data[element][config.subgroupAttribute] + ")" +
-                              "</br>" + config.xAttribute + "=" + model.data[element][config.xAttribute] +
-                              "</br>" + config.yAttribute + "=" + model.data[element][config.yAttribute]);
+                    .attr("id", "iv-tooltip")
+                    .style("left", coordinate.x + "px")
+                    .style("top", (coordinate.y - config.pointSize / 2 - 7) + "px")
+                    .html(html);
             }
-            tooltip = picked;
+            tooltip.group = picked.group;
+            tooltip.index = picked.index;
         }
     };
     
@@ -503,6 +597,8 @@ var pca2d = (function (model, config) {
         sceneData = new THREE.Scene();
         sceneAxes = new THREE.Scene();
         sceneGrid = new THREE.Scene();
+        sceneSelection = new THREE.Scene();
+        sceneNeighbors = new THREE.Scene();
             
         cameraData = new THREE.OrthographicCamera(dataViewSquare.minX, dataViewSquare.maxX, dataViewSquare.maxY, dataViewSquare.minY, 0, 100);
         cameraData.position.set(0, 0, 100);
@@ -510,8 +606,8 @@ var pca2d = (function (model, config) {
         cameraAxes = new THREE.OrthographicCamera(axesViewSquare.minX, axesViewSquare.maxX, axesViewSquare.maxY, axesViewSquare.minY, 0, 100);
         cameraAxes.position.set(0, 0, 100);
         
-        cameraGrid = new THREE.OrthographicCamera(axesViewSquare.minX, axesViewSquare.maxX, axesViewSquare.maxY, axesViewSquare.minY, 0, 100);
-        cameraGrid.position.set(0, 0, 100);
+//        cameraGrid = new THREE.OrthographicCamera(axesViewSquare.minX, axesViewSquare.maxX, axesViewSquare.maxY, axesViewSquare.minY, 0, 100);
+//        cameraGrid.position.set(0, 0, 100);
         
         renderer = new THREE.WebGLRenderer({
             canvas: canvas,
@@ -523,6 +619,8 @@ var pca2d = (function (model, config) {
         renderer.autoClear = false;
 
         raycaster = new THREE.Raycaster();
+//        raycaster.params.Points.threshold = config.pointSize;
+//        raycaster.params.Points.threshold = (dataViewSquare.sideSize / canvas.width) * config.pointSize * window.devicePixelRatio;
     }
     
     // Initialize controls.
@@ -549,10 +647,10 @@ var pca2d = (function (model, config) {
         drawAxes();
         drawSelection();
         
-        var selected = model.getSelectedActiveElement();
-        if (selected) {
-            changeSelection(selected);
-            sceneData.add(selection);
+        if (model.hasSelectedPoint()) {
+            var s = model.getSelection();
+            changeSelection(s.group, s.index);
+            sceneSelection.add(selection);
             drawNeighbors();
         }
     };
@@ -571,9 +669,13 @@ var pca2d = (function (model, config) {
         rescaleSelection();
         
         renderer.clear();
-        renderer.render(sceneGrid, cameraGrid);
+        renderer.render(sceneGrid, cameraAxes);
+        renderer.clearDepth();
+        renderer.render(sceneNeighbors, cameraData);
         renderer.clearDepth();
         renderer.render(sceneData, cameraData);
+        renderer.clearDepth();
+        renderer.render(sceneSelection, cameraData);
         renderer.clearDepth();
         renderer.render(sceneAxes, cameraAxes);
     };
@@ -585,72 +687,151 @@ var pca2d = (function (model, config) {
         var starty = 90;
         var stepy = -5;
         
-        var material = new THREE.PointsMaterial({
-            color: 0xffffff,
-            size: 10,
-            sizeAttenuation: false,
-            transparent: true,
-            map: circle,
-            vertexColors: THREE.VertexColors
-        });
-        
         var scene = new THREE.Scene();
-        var geometry = new THREE.Geometry();
         var name = null;
         
-        name = createLabel("Reference", "Arial", labelfontsize, "", "right", 500);
-        name.sprite.scale.set(70, 35, 1);
-        name.sprite.position.set(starx, starty, 0);
-        scene.add(name.sprite);
-        starty += stepy;
-        
-        for (var i = 0; i < model.groups.length; i++) {
-            if (!model.activeGroups.hasOwnProperty(model.groups[i].name)) {
-                continue;
+        var n_reference_groups = 0;
+        var n_active_reference_groups = 0;
+        var n_study_groups = 0;
+        var n_active_study_groups = 0;
+        for (var group in model.groups) {
+            if (model.groups[group].reference) {
+                n_reference_groups += 1;
+                if (model.isGroupActive(group)) {
+                    n_active_reference_groups += 1;
+                }
+            } else {
+                n_study_groups += 1;
+                if (model.isGroupActive(group)) {
+                    n_active_study_groups += 1;
+                }
             }
-            if (model.studyGroups.hasOwnProperty(model.groups[i].name)) {
-                continue;
-            }
-            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right", 500);
-            name.sprite.scale.set(70, 35, 1);
-            name.sprite.position.set(starx + 5, starty, 0);
-            
-            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
-            geometry.colors.push(new THREE.Color(model.groups[i].color));
-            
-            scene.add(name.sprite);
-            starty += stepy;
         }
         
-        starty -= 3;
-        
-        name = createLabel("Study", "Arial", labelfontsize, "", "right", 500);
-        name.sprite.scale.set(70, 35, 1);
-        name.sprite.position.set(starx, starty, 0);
-        scene.add(name.sprite);
-        starty += stepy;
-        
-        for (var i = 0; i < model.groups.length; i++) {
-            if (!model.activeGroups.hasOwnProperty(model.groups[i].name)) {
-                continue;
+        if (n_active_reference_groups > 0) {
+            if (n_study_groups > 0) {
+                name = createLabel("Reference", "Arial", labelfontsize, "", "right", 500);
+            } else {
+                name = createLabel("Groups", "Arial", labelfontsize, "", "right", 500);
             }
-            if (!model.studyGroups.hasOwnProperty(model.groups[i].name)) {
-                continue;
-            }
-            name = createLabel(model.groups[i].name, "Arial", groupfontsize, "", "right", 500);
             name.sprite.scale.set(70, 35, 1);
-            name.sprite.position.set(starx + 5, starty, 0);
-            
-            geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
-            geometry.colors.push(new THREE.Color(model.groups[i].color));
-            
+            name.sprite.position.set(starx, starty, 0);
             scene.add(name.sprite);
             starty += stepy;
+        
+            for (var group in model.groups) {
+                if (!model.isGroupActive(group)) {
+                    continue;
+                }
+                if (!model.groups[group].reference) {
+                    continue;
+                }
+                var geometry = new THREE.Geometry();
+                var material = new THREE.PointsMaterial({
+                    color: 0xffffff,
+                    size: 10,
+                    sizeAttenuation: false,
+                    transparent: true,
+                    map: symbols[model.groups[group].symbol],
+                    vertexColors: THREE.VertexColors
+                });
+                geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
+                geometry.colors.push(new THREE.Color(model.groups[group].color));
+                scene.add(new THREE.Points(geometry, material));
+            
+                name = createLabel(group, "Arial", groupfontsize, "", "right", 500);
+                name.sprite.scale.set(70, 35, 1);
+                name.sprite.position.set(starx + 5, starty, 0);
+                scene.add(name.sprite);
+            
+                starty += stepy;
+            }
+            starty -= 3;
         }
         
-        scene.add(new THREE.Points(geometry, material));
+        if (n_active_study_groups > 0) {
+            name = createLabel("Study", "Arial", labelfontsize, "", "right", 500);
+            name.sprite.scale.set(70, 35, 1);
+            name.sprite.position.set(starx, starty, 0);
+            scene.add(name.sprite);
+            starty += stepy;
+        
+            for (var group in model.groups) {
+                if (!model.isGroupActive(group)) {
+                    continue;
+                }
+                if (model.groups[group].reference) {
+                    continue;
+                }
+                var geometry = new THREE.Geometry();
+                var material = new THREE.PointsMaterial({
+                    color: 0xffffff,
+                    size: 10,
+                    sizeAttenuation: false,
+                    transparent: true,
+                    map: symbols[model.groups[group].symbol],
+                    vertexColors: THREE.VertexColors
+                });
+                geometry.vertices.push(new THREE.Vector3(starx + 2, starty, 0));
+                geometry.colors.push(new THREE.Color(model.groups[group].color));
+                scene.add(new THREE.Points(geometry, material));
+            
+                name = createLabel(group, "Arial", groupfontsize, "", "right", 500);
+                name.sprite.scale.set(70, 35, 1);
+                name.sprite.position.set(starx + 5, starty, 0);                        
+                scene.add(name.sprite);
+            
+                starty += stepy;
+            }
+        }
         
         return scene;
+    }
+    
+    this.saveImageToBlob = function(legend) {
+        var canvasScreen = document.createElement("canvas");
+        canvasScreen.width = 500;
+        canvasScreen.height = 500;
+            
+        var rendererScreen = new THREE.WebGLRenderer({
+            canvas: canvasScreen,
+            reserveDrawingBuffer: true,
+            antialias: false
+        });
+        rendererScreen.setSize(canvasScreen.width, canvasScreen.height);
+        rendererScreen.setPixelRatio(8);
+        rendererScreen.setClearColor(0xffffff);
+        rendererScreen.autoClear = false;
+        
+        rendererScreen.clear();
+        rendererScreen.render(sceneGrid, cameraAxes);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneNeighbors, cameraData);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneData, cameraData);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneSelection, cameraData);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneAxes, cameraAxes);
+        
+        if (legend == true) {
+            var cameraLegend = new THREE.OrthographicCamera(-100, 100, 100, -100, 0, 100);
+            cameraLegend.position.set(0, 0, 100);
+            
+            rendererScreen.clearDepth();
+            rendererScreen.render(drawLegend(), cameraLegend);
+        }
+        
+        var dataUrlFields = rendererScreen.domElement.toDataURL().split(/[,:;]/);
+        var bytes = atob(dataUrlFields[3]);
+        var mime = dataUrlFields[1];
+        
+        var ia = new Uint8Array(bytes.length);
+        for (var i = 0; i < bytes.length; i++) {
+            ia[i] = bytes.charCodeAt(i);
+        }
+        
+        return new Blob([ia], {type:mime});
     }
     
     this.saveImage = function(legend) {
@@ -667,11 +848,15 @@ var pca2d = (function (model, config) {
         rendererScreen.setPixelRatio(8);
         rendererScreen.setClearColor(0xffffff);
         rendererScreen.autoClear = false;
-
+        
         rendererScreen.clear();
-        rendererScreen.render(sceneGrid, cameraGrid);
+        rendererScreen.render(sceneGrid, cameraAxes);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneNeighbors, cameraData);
         rendererScreen.clearDepth();
         rendererScreen.render(sceneData, cameraData);
+        rendererScreen.clearDepth();
+        rendererScreen.render(sceneSelection, cameraData);
         rendererScreen.clearDepth();
         rendererScreen.render(sceneAxes, cameraAxes);
         
@@ -687,7 +872,7 @@ var pca2d = (function (model, config) {
     }
     
     var updateView = function() {
-        calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
+        calculateDataBoundingRectangle(config.xDim, config.yDim);
         calculateDataViewSquare();
         
         cameraData.zoom = 1;
@@ -704,9 +889,9 @@ var pca2d = (function (model, config) {
         
         drawData();
         
-        var selected = model.getSelectedActiveElement();
-        if (selected) {
-            changeSelection(selected);
+        if (model.hasSelectedPoint()) {
+            var point = model.getSelection();
+            changeSelection(point.group, point.index);
             drawNeighbors();
         }
     }
@@ -718,32 +903,36 @@ var pca2d = (function (model, config) {
     
     this.setPointSize = function(size) {
         config.pointSize = size;
-        if (particles) {
-            particles.material.size = size;
+        for (var group in particlesByGroup) {
+            particlesByGroup[group].material.size = size;
         }
     }
     
     this.setPointOpacity = function(alpha) {
         config.pointOpacity = alpha;
-        if (particles) {
-            particles.material.opacity = alpha;
+        for (var group in particlesByGroup) {
+            particlesByGroup[group].material.opacity = alpha;
         }
     }
-        
-    this.setXCoordinateAttr = function (name) {
-        config.xAttribute = name;
+    
+    this.setXDimension = function(dim) {
+        config.xDim = dim;
         updateView();
-        updateLabel(labelX, name);
+        updateLabel(labelX, model.dimensions[dim]);
     }; 
     
-    this.setYCoordinateAttr = function (name) {
-        config.yAttribute = name;
+    this.setYDimension = function(dim) {
+        config.yDim = dim;
         updateView();
-        updateLabel(labelY, name);
+        updateLabel(labelY, model.dimensions[dim]);
     };
     
     this.deactivate = function() {
-        model.removeListener("pca2d");
+        model.removeListener("onGroupChange", "pca2d");
+        model.removeListener("onSelectionChange", "pca2d");
+        model.removeListener("onNeighborsChange", "pca2d");
+        model.removeListener("onGroupColorChange", "pca2d");
+        model.removeListener("onGroupOpacityChange", "pca2d");
         controls.removeEventListener("change");
         d3.select(config.canvasId).on("mousemove", null);
         d3.select(config.canvasId).on("click", null);
@@ -770,25 +959,53 @@ var pca2d = (function (model, config) {
         }
     }
     
-    calculateDataBoundingRectangle(config.xAttribute, config.yAttribute);
+    calculateDataBoundingRectangle(config.xDim, config.yDim);
     calculateDataViewSquare();
     
-    model.addListener("pca2d", function(dataChanged, selectionChanged, neighborsChanged) {
-        if (dataChanged) {
-            drawData();
-        }
-        
-        if (selectionChanged) {
-            var selected = model.getSelectedActiveElement();
-            sceneData.remove(selection);   
-            if (selected) {
-                changeSelection(selected);
-                sceneData.add(selection);
+    model.addListener("onGroupChange", "pca2d", function() {
+        for (var group in model.pointsByGroup) {
+            var particles = sceneData.getObjectByName(group);
+            if (!model.activeGroups.hasOwnProperty(group)) {
+                if ((particles !== undefined) && (particles !== null)) {
+                    sceneData.remove(particles);
+                }
+            } else {
+                if ((particles === undefined) || (particles === null)) {
+                    sceneData.add(particlesByGroup[group]);
+                }
             }
         }
-        
-        if (neighborsChanged) {
-            drawNeighbors();
+    });
+    
+    model.addListener("onSelectionChange", "pca2d", function() {
+        if (model.hasSelectedPoint()) {
+            var s = model.getSelection();
+            changeSelection(s.group, s.index);
+            if (sceneSelection.children.length == 0) {
+                sceneSelection.add(selection);
+            }            
+        } else {
+            if (sceneSelection.children.length > 0) {
+                sceneSelection.remove(selection);
+            } 
         }
     });
+    
+    model.addListener("onNeighborsChange", "pca2d", function() {
+        drawNeighbors();
+    });
+    
+    model.addListener("onGroupColorChange", "pca2d", function(group) {
+        var colors = particlesByGroup[group].geometry.colors;
+        var newColor = model.groups[group].color;
+        for (var i = 0; i < colors.length; i++) {
+            colors[i] = new THREE.Color(newColor);    
+        }
+        particlesByGroup[group].geometry.colorsNeedUpdate = true;
+    });
+    
+    model.addListener("onGroupOpacityChange", "pca2d", function(group) {
+        particlesByGroup[group].material.opacity = model.groups[group].opacity;
+    });
+    
 });
