@@ -1,5 +1,13 @@
 # 23IV
-2D and 3D Interactive Visualization (23IV) of principal components on web.
+Javascript modules for 2D and 3D Interactive Visualization (23IV) of principal components on web.
 
-Example http://statgen.github.io/23IV/example_2D-3D.html.
-![example_2D-3D](example_2D-3D.png)
+## Example
+A running example is available from http://statgen.github.io/23IV/example.html. 
+An example input data is available from https://raw.githubusercontent.com/statgen/23IV/master/example_data.tsv.
+
+## Screenshots
+<img src="screenshots/screenshot_1.png" width="500">
+
+<img src="screenshots/screenshot_2.png" width="500">
+
+<img src="screenshots/screenshot_3.png" width="500">
