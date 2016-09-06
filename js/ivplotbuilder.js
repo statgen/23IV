@@ -779,6 +779,12 @@ var IVPlotBuilder = (function() {
     }
     
     obj.createPlot = function(groups, dimensions, points) {
+        // check if there are points to display
+        if (points.length == 0) {
+            createNotification("There are no data points to be displayed or all data points have NA values. Note: data points that have at least one NA value in their coordinates are not displayed.");
+            return; 
+        }
+        
         // check if WebGL is supported
         if (!hasWebGL()) {
             createNotification("Unfortunately, the interactive 2D/3D visualization can't be displayed using your web browser version. Please, update your web browser to the most recent version or try using different web browser.");
